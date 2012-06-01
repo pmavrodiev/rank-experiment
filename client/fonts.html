@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Raphaël · Fonts</title>
+        <link rel="stylesheet" href="demo.css" media="screen">
+        <link rel="stylesheet" href="demo-print.css" media="print">
+        <script src="raphael.js"></script>
+        <script src="font.js"></script>
+        <script>
+            window.onload = function () {
+                var r = Raphael("holder", 640, 480),
+                    fonts = [0, r.getFont("1"), r.getFont("2"), r.getFont("3"), r.getFont("whoa")],
+                    custom = r.print(70, 150, "Custom fonts", fonts[4], 60).attr({fill: "#fff"}),
+                    aseasyas = r.print(50, 240, "As easy as", fonts[4], 60).attr({fill: "none", stroke: "#fff"}),
+                    nums = [
+                        r.print(450, 240, "1", fonts[1], 60).attr({fill: "#fff"}),
+                        r.print(500, 240, "2", fonts[2], 60).attr({fill: "#fff"}),
+                        r.print(550, 240, "3", fonts[3], 60).attr({fill: "#fff"})
+                    ];
+
+                nums[0].animate({
+                    2: {fill: Raphael.getColor()},
+                    3: {transform: "s3"},
+                    4: {transform: ""}
+                }, 4000);
+                nums[1].animate({
+                    2: {fill: Raphael.getColor()},
+                    3: {},
+                    4: {transform: "s3"},
+                    5: {transform: ""}
+                }, 4500);
+                nums[2].animate({
+                    2: {fill: Raphael.getColor()},
+                    4: {},
+                    5: {transform: "s3"},
+                    6: {transform: ""}
+                }, 5000);
+                aseasyas.animate({
+                    2: {},
+                    4: {transform: "s.2,1"},
+                    6: {transform: ""}
+                }, 5000);
+            };
+        </script>
+    </head>
+    <body>
+        <div id="holder"></div>
+        <p id="copy">Demo of <a href="http://raphaeljs.com/">Raphaël</a>—JavaScript Vector Library</p>
+    </body>
+</html>

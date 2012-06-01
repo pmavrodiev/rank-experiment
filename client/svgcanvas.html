@@ -1,0 +1,80 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body>
+ 
+
+<head>
+<script src="jquery.js"></script>
+<script src="ui/jquery.ui.core.js"></script>
+<script src="ui/jquery.ui.widget.js"></script>
+<script src="ui/jquery.ui.mouse.js"></script>
+<script src="ui/jquery.ui.draggable.js"></script>
+<link href="css/reset.css" rel="stylesheet" type="text/css">
+<link href="css/layout.css" rel="stylesheet" type="text/css">
+<link href="css/style.css" rel="stylesheet" type="text/css">
+<script src="js/jquery.svg.js" type="text/javascript" ></script>
+<script src="js/jquery-ui.js" type="text/javascript" ></script>
+<script src="js/jquery.js" type="text/javascript" ></script>
+
+</head> 
+ 
+ 
+<link rel="stylesheet" type="text/css" href="rank.css" />
+<div class="zoombar" align="center">Zoom controls: 
+<button id="buttonZoomOut" type="button">-</button> 
+<button id="buttonZoomReset" type="button">reset</button> 
+<button id="buttonZoomIn" type="button">+</button> 
+</div>
+
+<br> 
+<svg id="circleCanvas" xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xml:space="preserve"
+    id="opatopa-world-canvas"
+    width="100%" height="80%"
+    viewBox="0 0 1050 1050">
+    <g id="compositeG" transform="translate(525,525) scale(1,-1)" >
+      <circle id="majorCircle" cx="0" cy="0" r="480" stroke="blue" fill="white"
+        stroke-width="3" />
+      <circle id="targetCircle" cx="0" cy="480" r="4" stroke="green" fill="none"
+        stroke-width="4" />
+      <circle id="currentGuess" cx="0" cy="480" r="4" stroke="red" fill="none"
+        stroke-width="4">
+        <animate attributeName="r" to="18" dur="1s" repeatCount="3" />
+      </circle>
+      <line id="angleLine" x1="0" y1="0" x2="0" y2="-480" stroke="green" fill="none" stroke-width="2" />
+
+      <rect x="475" y="-5" height="10" width="10" fill="none" stroke="black"/>
+      <rect x="-485" y="-5" height="10" width="10" fill="none" stroke="black"/>
+      <rect x="-5" y="475" height="10" width="10" fill="none" stroke="black"/>
+      <rect x="-5" y="-485" height="10" width="10" fill="none" stroke="black"/>
+    </g>
+    <path class="zoomHandle" id="left" d="M -200 100 L -200 150 L -300 125 z" opacity="0.4" fill="gray" stroke-width="5" /> 
+    <path class="zoomHandle" id="right" d="M -150 100 L -150 150 L -50 125 z" opacity="0.4" fill="gray" stroke-width="5"/> 
+    <path class="zoomHandle" id="up" d="M -200 100 L -150 100 L -175 0 z" opacity="0.4" fill="gray" stroke-width="5"/> 
+    <path class="zoomHandle" id="down" d="M -200 150 L -150 150  L -175 250 z" opacity="0.4" fill="gray" stroke-width="5"/> 
+    
+    
+    
+<!--    <g  id="buttonZoomOut" transform="translate(10,10)" >
+      <rect id="light" x="0" y="0" width="40" height="40" rx="10" ry="10" style="stroke:black;fill:green;stroke-width:2;fill-opacity:0.3;"/>
+      <text id="label" x="20" y="30" font-size="30"  text-anchor="middle" font-family="Verdana">-</text>
+    </g>
+    <g id="buttonZoomReset" transform="translate(54,10)">
+      <rect id="light" x="0" y="0" width="40" height="40" rx="10" ry="10" style="stroke:black;fill:green;stroke-width:2;fill-opacity:0.3;"/>
+      <text id="label" x="20" y="30" font-size="30"  text-anchor="middle" font-family="Verdana">0</text>
+    </g>
+    <g id="buttonZoomIn" transform="translate(98,10)">
+      <rect id="light" x="0" y="0" width="40" height="40" rx="10" ry="10"  style="stroke:black;fill:green;stroke-width:2;fill-opacity:0.3;"/>
+      <text id="label" x="20" y="30" font-size="30"  text-anchor="middle" font-family="Verdana">+</text>
+    </g>-->
+    <text id="rankText" x="10" y="90" font-family="Arial" font-size="32" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
+    <text id="rankText2" x="10" y="130" font-family="Arial" font-size="32" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
+    <text id="rankText3" x="10" y="170" font-family="Arial" font-size="32" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
+  </svg>
+
+<script src="clientsvg.js"></script>
+
+</body>
+</html>
+

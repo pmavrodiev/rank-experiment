@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xml:space="preserve"
+    id="opatopa-world-canvas"
+    width="100%" height="100%"
+    viewBox="0 0 1024 1024">
+    <g transform="translate(512,512)">
+    <circle id="majorCircle" cx="0" cy="0" r="500" stroke="blue" fill="none"
+     stroke-width="3" />
+    <circle id="targetCircle" cx="0" cy="-500" r="4" stroke="green" fill="none"
+     stroke-width="4" />
+    <circle id="currentGuess" cx="0" cy="-500" r="4" stroke="red" fill="none"
+     stroke-width="4" />
+    <line id="angleLine" x1="0" y1="0" x2="0" y2="-500" stroke="green" fill="none" stroke-width="2" />
+    <text id="rankText" x="-850" y="-450" font-family="Arial" font-size="48" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
+    </g>
+</svg>
