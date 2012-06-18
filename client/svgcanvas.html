@@ -9,6 +9,7 @@
 	<script src="ui/jquery.ui.widget.js"></script>
 	<script src="ui/jquery.ui.mouse.js"></script>
 	<script src="ui/jquery.ui.draggable.js"></script>
+	
 	<!--
 	<link href="css/reset.css" rel="stylesheet" type="text/css">
 	<link href="css/layout.css" rel="stylesheet" type="text/css">
@@ -20,14 +21,16 @@
 </head>  
  
 <link rel="stylesheet" type="text/css" href="rank.css"/>
+<!--
 <div class="zoombar" align="center">Zoom controls: 
 <button id="buttonZoomOut" type="button">-</button> 
 <button id="buttonZoomReset" type="button">reset</button> 
 <button id="buttonZoomIn" type="button">+</button> 
 </div>
+-->
 
 <br> 
-
+<div id="svgDiv">
 <svg id="circleCanvas" xmlns="http://www.w3.org/2000/svg" 
     xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:svg="http://www.w3.org/2000/svg"
@@ -36,39 +39,47 @@
    viewBox= "0,0,1050,1050">
     
   <rect x="0" y="0" width="1050" height="1050" 
-        fill="yellow" stroke="blue" stroke-width="12"  />
-
-    <g id="compositeG" transform="translate(525,490) scale(1,-1)" >
+        fill="yellow" stroke="blue" stroke-width="12"> 
+ </rect>
+    <script xlink:href="js/SVGPan.js"></script>
+    <g id="viewport" transform="translate(525,490) scale(1,-1)" >
       <circle id="majorCircle" cx="0" cy="0" r="480" stroke="blue" fill="white"
-        stroke-width="3" />        
+        stroke-width="3"> 
+      </circle>        
       <circle id="targetCircle" cx="0" cy="480" r="4" stroke="green" fill="none"
-        stroke-width="4" />
+        stroke-width="4">
+      </circle>
       <circle id="currentGuess" cx="0" cy="480" r="4" stroke="red" fill="none"
         stroke-width="4">
-        <animate attributeName="r" to="18" dur="1s" repeatCount="3" />
+        <animate attributeName="r" to="18" dur="1s" repeatCount="3">
       </circle>
         
-      <line id="angleLine" x1="0" y1="0" x2="0" y2="480" stroke="green" fill="none" stroke-width="2" />
+      <line id="angleLine" x1="0" y1="0" x2="0" y2="480" stroke="green" fill="none" stroke-width="2">
+      </line>	
       
-      <rect x="475" y="-5" height="10" width="10" fill="none" stroke="black"/>
-      <rect x="-485" y="-5" height="10" width="10" fill="none" stroke="black"/>
-      <rect x="-5" y="475" height="10" width="10" fill="none" stroke="black"/>
-      <rect x="-5" y="-485" height="10" width="10" fill="none" stroke="black"/>
+      <rect x="475" y="-5" height="10" width="10" fill="none" stroke="black">
+      </rect>
+      <rect x="-485" y="-5" height="10" width="10" fill="none" stroke="black">
+      </rect>
+      <rect x="-5" y="475" height="10" width="10" fill="none" stroke="black">
+      </rect>
+      <rect x="-5" y="-485" height="10" width="10" fill="none" stroke="black">
+      </rect>
     </g>  
+</svg>
+</div>
+  <text id="rankText" x="-200" y="90" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
+  <text id="angleText" x="-200" y="130" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible"></text>
+  <text id="msgText" x="-200" y="170" font-family="Arial"   font-size="30" color="blue" opacity="1" visibility="visible"></text>
+    
 
-    <path class="zoomHandle" id="left" d="M -300 100 L -300 150 L -350 125 z" opacity="0.4" fill="gray" stroke-width="5" /> 
-    <path class="zoomHandle" id="right" d="M -250 100 L -250 150 L -200 125 z" opacity="0.4" fill="gray" stroke-width="5"/> 
-    <path class="zoomHandle" id="up" d="M -300 100 L -250 100 L -275 50 z" opacity="0.4" fill="gray" stroke-width="5"/> 
-    <path class="zoomHandle" id="down" d="M -300 150 L -250 150  L -275 200 z" opacity="0.4" fill="gray" stroke-width="5"/> 
-    
-    
-     <text id="rankText" x="-200" y="90" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
-    <text id="angleText" x="-200" y="130" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible"></text>
-    <text id="msgText" x="-200" y="170" font-family="Arial"   font-size="30" color="blue" opacity="1" visibility="visible"></text>
-    
-  </svg>
 
 <script src="clientsvg.js"></script>
+<script>
+	 $(document).ready(function() {
+    	new rank_experiment()
+    });	
+</script>
 
 
 </body>
