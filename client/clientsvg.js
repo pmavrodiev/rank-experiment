@@ -4,7 +4,7 @@
   window.rank_experiment = (function() {
 
     function rank_experiment() {
-      this.viewport = document.getElementById("viewport");
+      this.compositeG = document.getElementById("svgCanvas");
       this.majorCircle = document.getElementById("majorCircle");
       this.targetCircle = document.getElementById("targetCircle");
       this.currentGuess = document.getElementById("currentGuess");
@@ -18,8 +18,7 @@
       this.viewport_axis_x = 525;
       this.viewport_axis_y = 490;
       this.centre_coord = circleCanvas.createSVGPoint();
-      this.zoom_level = 0;
-      this.zoom_positions = new Array(11);
+      this.zoom_scale = 0.2;
       this.previous_angle = Math.PI / 2;
       this.rankTextOpacity = 1;
       this.timedHover;
@@ -29,18 +28,63 @@
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var animateRankText, ccMouseClick, ccMouseMove, getCursorPosition, init, init_canvas, restartGuessingTask, update_zoom,
+      var animateRankText, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, init_canvas, restartGuessingTask, update_zoom,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
         pt = _this.circleCanvas.createSVGPoint();
         pt.x = e.x;
         pt.y = e.y;
-        transformation_matrix = _this.circleCanvas.getScreenCTM();
+        transformation_matrix = _this.compositeG.getScreenCTM();
         pt2 = pt.matrixTransform(transformation_matrix.inverse());
-        pt2.x -= _this.centre_coord.x;
-        pt2.y = _this.centre_coord.y - pt2.y;
         return pt2;
+      };
+      ccMouseWheel = function(event) {
+        var coord, deltaX, deltaY, e, k, km, km_scaled, km_scaled_zoomed, km_scaled_zoomed_translated, m, s, sgn, tm, zoom;
+        sgn = function(x) {
+          if (x > 0) {
+            return 1;
+          } else if (x < 0) {
+            return -1;
+          } else {
+            return 0;
+          }
+        };
+        e = event || window.event;
+        coord = getCursorPosition(e);
+        deltaX = e.deltaX * -30 || e.wheelDeltaX / 40 || 0;
+        deltaY = e.deltaY * -30 || e.wheelDeltaY / 109 || (e.wheelDeltaY === void 0 && e.wheelDelta / 109) || e.detail * -10 || 0;
+        if (deltaY > 0) {
+          _this.zoom_level++;
+        }
+        if (deltaY < 0) {
+          _this.zoom_level--;
+        }
+        /*  
+        Most browsers generate one event with delta 120 per mousewheel click.
+        On Macs, however, the mousewheels seem to be velocity-sensitive and
+             the delta values are often larger multiples of 120, at
+        least with the Apple Mouse. Use browser-testing to defeat this.
+        */
+
+        if (_this.isMacWebKit) {
+          deltaX /= 30;
+          deltaY /= 30;
+        }
+        if (_this.isFirefox && e.type !== "DOMMouseScroll") {
+          _this.circleCanvas.removeEventListener("DOMMouseScroll", ccMouseWheel, false);
+        }
+        zoom = Math.pow(1 + _this.zoom_scale, deltaY);
+        km = _this.circleCanvas.createSVGMatrix();
+        km_scaled = km.translate(coord.x, coord.y);
+        km_scaled_zoomed = km_scaled.scaleNonUniform(zoom, zoom);
+        km_scaled_zoomed_translated = km_scaled_zoomed.translate(-coord.x, -coord.y);
+        k = km_scaled_zoomed_translated;
+        tm = _this.circleCanvas.getCTM();
+        m = tm.multiply(k);
+        s = "matrix(" + m.a + "," + m.b + "," + m.c + "," + m.d + "," + m.e + "," + m.f + ")";
+        _this.circleCanvas.setAttribute("transform", s);
+        return false;
       };
       ccMouseClick = function(e) {
         var coord;
@@ -94,13 +138,14 @@
         return update_zoom();
       };
       init = function() {
-        var i, _i, _ref;
-        for (i = _i = 0, _ref = _this.zoom_positions.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-          _this.zoom_positions[i] = Math.exp(i * 3 / (_this.zoom_positions.length - 1) * Math.log(2));
+        _this.zoom_level = 0.2;
+        _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
+        _this.compositeG.addEventListener('click', ccMouseClick, false);
+        _this.circleCanvas.onwheel = ccMouseWheel;
+        _this.circleCanvas.onmousewheel = ccMouseWheel;
+        if (_this.isFirefox) {
+          _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
         }
-        _this.zoom_level = 0;
-        _this.circleCanvas.addEventListener('mousemove', ccMouseMove, false);
-        _this.circleCanvas.addEventListener('click', ccMouseClick, false);
         _this.rankText.textContent = "";
         return init_canvas();
       };

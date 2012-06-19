@@ -114,11 +114,12 @@ function setupHandlers(root){
 function getRoot(root) {
 	if(svgRoot == null) {
 		var r = root.getElementById("viewport") ? root.getElementById("viewport") : root.documentElement, t = r;
-
+		var tcm;
 		while(t != root) {
 			if(t.getAttribute("viewBox")) {
-				//setCTM(r, t.getCTM());
-				//t.removeAttribute("viewBox");
+				tcm = t.getCTM();
+				//setCTM(r, tcm);
+				t.removeAttribute("viewBox");
 			}
 
 			t = t.parentNode;
