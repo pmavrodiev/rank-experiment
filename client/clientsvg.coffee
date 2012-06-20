@@ -1,6 +1,8 @@
 class window.rank_experiment
   constructor: () ->
     @compositeG=document.getElementById "svgCanvas" 
+    @circleCanvas=document.getElementById("circleCanvas")
+    ###
     @majorCircle=document.getElementById("majorCircle") 
     @targetCircle=document.getElementById("targetCircle") 
     @currentGuess=document.getElementById("currentGuess") 
@@ -8,7 +10,7 @@ class window.rank_experiment
     @rankText=document.getElementById("rankText")
     @angleText=document.getElementById("angleText")
     @msgText=document.getElementById("msgText")
-    @circleCanvas=document.getElementById("circleCanvas")
+   
 
     @radius = 480
     @viewport_size=1050
@@ -28,7 +30,77 @@ class window.rank_experiment
     @isFirefox = navigator.userAgent.indexOf("Gecko") != -1
     
     window.addEventListener('load',@windowListen(),false)     
+    ###
+    window.addEventListener('load',@windowListen2(),false)
     
+  windowListen2: () ->
+    getCursorPosition2 = (e) => 
+      pt = @circleCanvas.createSVGPoint()
+      pt.x = e.x
+      pt.y = e.y
+      #transformation_matrix = @circleCanvas.getScreenCTM()
+      transformation_matrix = @compositeG.getScreenCTM()
+      pt2 = pt.matrixTransform(transformation_matrix.inverse())
+      return pt2
+      
+    ccMouseClick2 = (e) =>
+     coord = getCursorPosition2(e)    
+     tm = @compositeG.getScreenCTM()
+     tmparent = @circleCanvas.getScreenCTM()
+     p = @circleCanvas.createSVGMatrix()
+     p2 = p.translate(coord.x,coord.y)
+     p3 = p2.scale(1.33)
+     p4 = p3.translate(-coord.x/1.33,-coord.y/1.33)
+     p5 = tm.multiply(p4)
+     #s = "matrix("+ p5.a + "," + p5.b + "," +p5.c + "," +p5.d + "," +p5.e + "," +p5.f + ")"
+     zoom = (1+2*tm.a)
+     translation_x = tm.e
+     translation_y = tm.f + zoom*coord.y
+     s = "matrix("+ zoom + "," +tm.b + "," +tm.c + "," + (-zoom) + "," +translation_x+ "," +translation_y+")"
+     @compositeG.setAttribute("transform",s)
+     
+    ccMouseMove2 = (e) =>
+     coord = getCursorPosition2(e)    
+     console.log(e.x+":"+e.y+":::"+coord.x + ":" + coord.y)
+     
+    animateRankText = () =>
+    
+    update_zoom = () =>
+        ###
+      viewport.setAttribute("transform",
+                              "translate("+ centre_coord.x+","+ centre_coord.y +") "+
+            "scale("+zoom_positions[zoom_level]+","+(-zoom_positions[zoom_level])+")")
+        ###
+  
+    init_canvas = () =>
+      #@angleLine.setAttribute("x2",@radius*Math.cos(@previous_angle))
+      #@angleLine.setAttribute("y2",@radius*Math.sin(@previous_angle))
+      #@centre_coord.x=@viewport_axis_x
+      #@centre_coord.y=@viewport_axis_y
+      #centre_coord.x=viewport_size*zoom_positions[zoom_level]/2
+      #centre_coord.y=viewport_size*zoom_positions[zoom_level]/2
+      update_zoom()
+  
+  
+    init = () =>
+      @zoom_level = 0.2
+    
+      @compositeG.addEventListener('mousemove', ccMouseMove2, false) #fired when mouse is moved
+      @compositeG.addEventListener('click', ccMouseClick2, false) #fired when mouse is pressed AND released
+      #add mousewheel event   
+      #@circleCanvas.onwheel = ccMouseWheel #future browsers
+      #@circleCanvas.onmousewheel = ccMouseWheel #most current browsers
+      #if (@isFirefox)
+       # @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
+    
+      #@rankText.textContent = ""
+
+      init_canvas()
+    
+    init()
+
+  
+          
   windowListen: () ->
     # the objects in the SVG code
   
@@ -41,8 +113,7 @@ class window.rank_experiment
       transformation_matrix = @compositeG.getScreenCTM()
       pt2 = pt.matrixTransform(transformation_matrix.inverse())
       #pt2.x -= @centre_coord.x
-      #pt2.y = @centre_coord.y  - pt2.y
-  
+      #pt2.y = @centre_coord.y  - pt2.y      
       return pt2
       
       
@@ -172,8 +243,8 @@ class window.rank_experiment
         ###
   
    init_canvas = () =>
-      @angleLine.setAttribute("x2",@radius*Math.cos(@previous_angle))
-      @angleLine.setAttribute("y2",@radius*Math.sin(@previous_angle))
+      #@angleLine.setAttribute("x2",@radius*Math.cos(@previous_angle))
+      #@angleLine.setAttribute("y2",@radius*Math.sin(@previous_angle))
       @centre_coord.x=@viewport_axis_x
       @centre_coord.y=@viewport_axis_y
       #centre_coord.x=viewport_size*zoom_positions[zoom_level]/2
@@ -184,13 +255,13 @@ class window.rank_experiment
    init = () =>
       @zoom_level = 0.2
     
-      @compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
-      @compositeG.addEventListener('click', ccMouseClick, false) #fired when mouse is pressed AND released
+      #@compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
+      @circleCanvas.addEventListener('click', ccMouseClick2, false) #fired when mouse is pressed AND released
       #add mousewheel event   
-      @circleCanvas.onwheel = ccMouseWheel #future browsers
-      @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
-      if (@isFirefox)
-        @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
+      #@circleCanvas.onwheel = ccMouseWheel #future browsers
+      #@circleCanvas.onmousewheel = ccMouseWheel #most current browsers
+      #if (@isFirefox)
+       # @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
     
       @rankText.textContent = ""
 

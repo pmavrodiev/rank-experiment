@@ -5,27 +5,93 @@
 
     function rank_experiment() {
       this.compositeG = document.getElementById("svgCanvas");
-      this.majorCircle = document.getElementById("majorCircle");
-      this.targetCircle = document.getElementById("targetCircle");
-      this.currentGuess = document.getElementById("currentGuess");
-      this.angleLine = document.getElementById("angleLine");
-      this.rankText = document.getElementById("rankText");
-      this.angleText = document.getElementById("angleText");
-      this.msgText = document.getElementById("msgText");
       this.circleCanvas = document.getElementById("circleCanvas");
-      this.radius = 480;
-      this.viewport_size = 1050;
-      this.viewport_axis_x = 525;
-      this.viewport_axis_y = 490;
-      this.centre_coord = circleCanvas.createSVGPoint();
-      this.zoom_scale = 0.2;
-      this.previous_angle = Math.PI / 2;
-      this.rankTextOpacity = 1;
-      this.timedHover;
-      this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
-      this.isFirefox = navigator.userAgent.indexOf("Gecko") !== -1;
-      window.addEventListener('load', this.windowListen(), false);
+      /*
+          @majorCircle=document.getElementById("majorCircle") 
+          @targetCircle=document.getElementById("targetCircle") 
+          @currentGuess=document.getElementById("currentGuess") 
+          @angleLine=document.getElementById("angleLine") 
+          @rankText=document.getElementById("rankText")
+          @angleText=document.getElementById("angleText")
+          @msgText=document.getElementById("msgText")
+         
+      
+          @radius = 480
+          @viewport_size=1050
+          @viewport_axis_x = 525 #the translated x axis of the <g> component in svgcanvas.html
+          @viewport_axis_y = 490 #the translated y axis of the <g> component in svgcanvas.html
+          @centre_coord=circleCanvas.createSVGPoint()
+      
+          @zoom_scale = 0.2
+          
+          @previous_angle = Math.PI/2
+        
+          @rankTextOpacity = 1  
+          @timedHover
+          @isMacWebKit = navigator.userAgent.indexOf("Macintosh") != -1 &&
+                      navigator.userAgent.indexOf("WebKit") != -1
+                      
+          @isFirefox = navigator.userAgent.indexOf("Gecko") != -1
+          
+          window.addEventListener('load',@windowListen(),false)
+      */
+
+      window.addEventListener('load', this.windowListen2(), false);
     }
+
+    rank_experiment.prototype.windowListen2 = function() {
+      var animateRankText, ccMouseClick2, ccMouseMove2, getCursorPosition2, init, init_canvas, update_zoom,
+        _this = this;
+      getCursorPosition2 = function(e) {
+        var pt, pt2, transformation_matrix;
+        pt = _this.circleCanvas.createSVGPoint();
+        pt.x = e.x;
+        pt.y = e.y;
+        transformation_matrix = _this.compositeG.getScreenCTM();
+        pt2 = pt.matrixTransform(transformation_matrix.inverse());
+        return pt2;
+      };
+      ccMouseClick2 = function(e) {
+        var coord, p, p2, p3, p4, p5, s, tm, tmparent, translation_x, translation_y, zoom;
+        coord = getCursorPosition2(e);
+        tm = _this.compositeG.getScreenCTM();
+        tmparent = _this.circleCanvas.getScreenCTM();
+        p = _this.circleCanvas.createSVGMatrix();
+        p2 = p.translate(coord.x, coord.y);
+        p3 = p2.scale(1.33);
+        p4 = p3.translate(-coord.x / 1.33, -coord.y / 1.33);
+        p5 = tm.multiply(p4);
+        zoom = 1 + 2 * tm.a;
+        translation_x = tm.e;
+        translation_y = tm.f + zoom * coord.y;
+        s = "matrix(" + zoom + "," + tm.b + "," + tm.c + "," + (-zoom) + "," + translation_x + "," + translation_y + ")";
+        return _this.compositeG.setAttribute("transform", s);
+      };
+      ccMouseMove2 = function(e) {
+        var coord;
+        coord = getCursorPosition2(e);
+        return console.log(e.x + ":" + e.y + ":::" + coord.x + ":" + coord.y);
+      };
+      animateRankText = function() {};
+      update_zoom = function() {
+        /*
+              viewport.setAttribute("transform",
+                                      "translate("+ centre_coord.x+","+ centre_coord.y +") "+
+                    "scale("+zoom_positions[zoom_level]+","+(-zoom_positions[zoom_level])+")")
+        */
+
+      };
+      init_canvas = function() {
+        return update_zoom();
+      };
+      init = function() {
+        _this.zoom_level = 0.2;
+        _this.compositeG.addEventListener('mousemove', ccMouseMove2, false);
+        _this.compositeG.addEventListener('click', ccMouseClick2, false);
+        return init_canvas();
+      };
+      return init();
+    };
 
     rank_experiment.prototype.windowListen = function() {
       var animateRankText, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, init_canvas, restartGuessingTask, update_zoom,
@@ -131,21 +197,13 @@
 
       };
       init_canvas = function() {
-        _this.angleLine.setAttribute("x2", _this.radius * Math.cos(_this.previous_angle));
-        _this.angleLine.setAttribute("y2", _this.radius * Math.sin(_this.previous_angle));
         _this.centre_coord.x = _this.viewport_axis_x;
         _this.centre_coord.y = _this.viewport_axis_y;
         return update_zoom();
       };
       init = function() {
         _this.zoom_level = 0.2;
-        _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
-        _this.compositeG.addEventListener('click', ccMouseClick, false);
-        _this.circleCanvas.onwheel = ccMouseWheel;
-        _this.circleCanvas.onmousewheel = ccMouseWheel;
-        if (_this.isFirefox) {
-          _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
-        }
+        _this.circleCanvas.addEventListener('click', ccMouseClick2, false);
         _this.rankText.textContent = "";
         return init_canvas();
       };

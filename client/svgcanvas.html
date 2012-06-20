@@ -21,26 +21,26 @@
 </head>  
  
 <link rel="stylesheet" type="text/css" href="rank.css"/>
-<!--
-<div class="zoombar" align="center">Zoom controls: 
-<button id="buttonZoomOut" type="button">-</button> 
-<button id="buttonZoomReset" type="button">reset</button> 
-<button id="buttonZoomIn" type="button">+</button> 
-</div>
--->
 
-<br> 
 <svg id="circleCanvas" xmlns="http://www.w3.org/2000/svg" 
     xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:svg="http://www.w3.org/2000/svg"
     xml:space="preserve"
-    width="100%" height="100%" 
+    width="1024px" height="768px" 
    viewBox= "0,0,1050,1050">
-    
-  <rect x="0" y="0" width="1050" height="1050" 
-        fill="yellow" stroke="blue" stroke-width="12"> 
- </rect>
+  <g fill="none" stroke="black" stroke-width="3">
+  	<line x1="0" y1="1.5" x2="1050" y2="1.5"></line>
+  	<line x1="1.5" y1="0" x2="1.5" y2="1050"></line>  	
+  </g>  
+
     <g id="svgCanvas" transform="translate(525,490) scale(1,-1)" >
+      <g fill="none" stroke="red" stroke-width="3">
+  		<line x1="0" y1="1.5" x2="525" y2="1.5"></line>
+  		<line x1="0" y1="0" x2="0" y2="560"></line>
+  		<circle cx="0" cy="100" r="3" stroke="green"> </circle>  	
+	  </g>
+    </g>
+      <!--
       <circle id="majorCircle" cx="0" cy="0" r="480" stroke="blue" fill="white"
         stroke-width="3"> 
       </circle>        
@@ -64,6 +64,7 @@
       <rect x="-5" y="-485" height="10" width="10" fill="none" stroke="black">
       </rect>
     </g>  
+    -->
 </svg>
   <text id="rankText" x="-200" y="90" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
   <text id="angleText" x="-200" y="130" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible"></text>
