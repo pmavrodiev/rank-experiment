@@ -6,37 +6,24 @@
     function rank_experiment() {
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
-      /*
-          @majorCircle=document.getElementById("majorCircle") 
-          @targetCircle=document.getElementById("targetCircle") 
-          @currentGuess=document.getElementById("currentGuess") 
-          @angleLine=document.getElementById("angleLine") 
-          @rankText=document.getElementById("rankText")
-          @angleText=document.getElementById("angleText")
-          @msgText=document.getElementById("msgText")
-         
-      
-          @radius = 480
-          @viewport_size=1050
-          @viewport_axis_x = 525 #the translated x axis of the <g> component in svgcanvas.html
-          @viewport_axis_y = 490 #the translated y axis of the <g> component in svgcanvas.html
-          @centre_coord=circleCanvas.createSVGPoint()
-      
-          @zoom_scale = 0.2
-          
-          @previous_angle = Math.PI/2
-        
-          @rankTextOpacity = 1  
-          @timedHover
-          @isMacWebKit = navigator.userAgent.indexOf("Macintosh") != -1 &&
-                      navigator.userAgent.indexOf("WebKit") != -1
-                      
-          @isFirefox = navigator.userAgent.indexOf("Gecko") != -1
-          
-          window.addEventListener('load',@windowListen(),false)
-      */
-
-      window.addEventListener('load', this.windowListen2(), false);
+      this.majorCircle = document.getElementById("majorCircle");
+      this.targetCircle = document.getElementById("targetCircle");
+      this.currentGuess = document.getElementById("currentGuess");
+      this.angleLine = document.getElementById("angleLine");
+      this.rankText = document.getElementById("rankText");
+      this.angleText = document.getElementById("angleText");
+      this.msgText = document.getElementById("msgText");
+      this.viewport_size = 1050;
+      this.viewport_axis_x = 525;
+      this.viewport_axis_y = 490;
+      this.centre_coord = circleCanvas.createSVGPoint();
+      this.zoom_scale = 0.2;
+      this.previous_angle = Math.PI / 2;
+      this.rankTextOpacity = 1;
+      this.timedHover;
+      this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
+      this.isFirefox = navigator.userAgent.indexOf("Gecko") !== -1;
+      window.addEventListener('load', this.windowListen(), false);
     }
 
     rank_experiment.prototype.windowListen2 = function() {
@@ -52,20 +39,29 @@
         return pt2;
       };
       ccMouseClick2 = function(e) {
-        var coord, p, p2, p3, p4, p5, s, tm, tmparent, translation_x, translation_y, zoom;
+        var circleParent, circleScaled, circle_xy, coord, s, smatrix, tm, tmnew2, tmparent, tmscaled, xtm, xtmparent, xtmscaled;
         coord = getCursorPosition2(e);
+        xtmparent = _this.circleCanvas.createSVGPoint();
+        xtm = _this.circleCanvas.createSVGPoint();
+        circle_xy = _this.circleCanvas.createSVGPoint();
+        xtmparent.x = e.x;
+        xtmparent.y = e.y;
+        xtm.x = coord.x;
+        xtm.y = coord.y;
+        circle_xy.x = _this.littleCircle.cx.baseVal.value;
+        circle_xy.y = _this.littleCircle.cy.baseVal.value;
         tm = _this.compositeG.getScreenCTM();
+        tmscaled = tm.scale(1.75);
         tmparent = _this.circleCanvas.getScreenCTM();
-        p = _this.circleCanvas.createSVGMatrix();
-        p2 = p.translate(coord.x, coord.y);
-        p3 = p2.scale(1.33);
-        p4 = p3.translate(-coord.x / 1.33, -coord.y / 1.33);
-        p5 = tm.multiply(p4);
-        zoom = 1 + 2 * tm.a;
-        translation_x = tm.e;
-        translation_y = tm.f + zoom * coord.y;
-        s = "matrix(" + zoom + "," + tm.b + "," + tm.c + "," + (-zoom) + "," + translation_x + "," + translation_y + ")";
-        return _this.compositeG.setAttribute("transform", s);
+        xtmscaled = xtmparent.matrixTransform(tmscaled.inverse());
+        circleParent = circle_xy.matrixTransform(tm);
+        circleScaled = circleParent.matrixTransform(tmscaled.inverse());
+        smatrix = tmparent.inverse().multiply(tmscaled);
+        s = "matrix(" + smatrix.a + "," + smatrix.b + "," + smatrix.c + "," + smatrix.d + "," + smatrix.e + "," + smatrix.f + ")";
+        _this.littleCircle.setAttribute("cx", circleScaled.x);
+        _this.littleCircle.setAttribute("cy", circleScaled.y);
+        _this.compositeG.setAttribute("transform", s);
+        return tmnew2 = _this.compositeG.getScreenCTM();
       };
       ccMouseMove2 = function(e) {
         var coord;
@@ -106,25 +102,16 @@
         return pt2;
       };
       ccMouseWheel = function(event) {
-        var coord, deltaX, deltaY, e, k, km, km_scaled, km_scaled_zoomed, km_scaled_zoomed_translated, m, s, sgn, tm, zoom;
-        sgn = function(x) {
-          if (x > 0) {
-            return 1;
-          } else if (x < 0) {
-            return -1;
-          } else {
-            return 0;
-          }
-        };
+        var circleParent, circleScaled, circle_xy, coord, deltaX, deltaY, e, line_y, s, smatrix, tm, tmparent, tmscaled, zoom, zoomLevel;
         e = event || window.event;
-        coord = getCursorPosition(e);
         deltaX = e.deltaX * -30 || e.wheelDeltaX / 40 || 0;
         deltaY = e.deltaY * -30 || e.wheelDeltaY / 109 || (e.wheelDeltaY === void 0 && e.wheelDelta / 109) || e.detail * -10 || 0;
+        zoom = 0;
         if (deltaY > 0) {
-          _this.zoom_level++;
+          zoom = 1;
         }
         if (deltaY < 0) {
-          _this.zoom_level--;
+          zoom = -1;
         }
         /*  
         Most browsers generate one event with delta 120 per mousewheel click.
@@ -140,24 +127,34 @@
         if (_this.isFirefox && e.type !== "DOMMouseScroll") {
           _this.circleCanvas.removeEventListener("DOMMouseScroll", ccMouseWheel, false);
         }
-        zoom = Math.pow(1 + _this.zoom_scale, deltaY);
-        km = _this.circleCanvas.createSVGMatrix();
-        km_scaled = km.translate(coord.x, coord.y);
-        km_scaled_zoomed = km_scaled.scaleNonUniform(zoom, zoom);
-        km_scaled_zoomed_translated = km_scaled_zoomed.translate(-coord.x, -coord.y);
-        k = km_scaled_zoomed_translated;
-        tm = _this.circleCanvas.getCTM();
-        m = tm.multiply(k);
-        s = "matrix(" + m.a + "," + m.b + "," + m.c + "," + m.d + "," + m.e + "," + m.f + ")";
-        _this.circleCanvas.setAttribute("transform", s);
+        zoomLevel = Math.pow(1 + _this.zoom_scale, deltaY);
+        coord = getCursorPosition(e);
+        circle_xy = _this.circleCanvas.createSVGPoint();
+        line_y = _this.circleCanvas.createSVGPoint();
+        circle_xy.x = _this.targetCircle.cx.baseVal.value;
+        circle_xy.y = _this.targetCircle.cy.baseVal.value;
+        tm = _this.compositeG.getScreenCTM();
+        tmscaled = tm.scale(zoomLevel);
+        tmparent = _this.circleCanvas.getScreenCTM();
+        circleParent = circle_xy.matrixTransform(tm);
+        circleScaled = circleParent.matrixTransform(tmscaled.inverse());
+        smatrix = tmparent.inverse().multiply(tmscaled);
+        s = "matrix(" + smatrix.a + "," + smatrix.b + "," + smatrix.c + "," + smatrix.d + "," + smatrix.e + "," + smatrix.f + ")";
+        _this.targetCircle.setAttribute("cx", circleScaled.x);
+        _this.targetCircle.setAttribute("cy", circleScaled.y);
+        _this.angleLine.setAttribute("x2", circleScaled.x);
+        _this.angleLine.setAttribute("y2", circleScaled.y);
+        _this.majorCircle.setAttribute("r", Math.sqrt(Math.pow(circleScaled.x, 2) + Math.pow(circleScaled.y, 2)));
+        _this.compositeG.setAttribute("transform", s);
         return false;
       };
       ccMouseClick = function(e) {
-        var coord;
+        var coord, radius;
         coord = getCursorPosition(e);
         _this.previous_angle = Math.atan2(coord.y, coord.x);
-        _this.currentGuess.setAttribute("cx", _this.radius * Math.cos(_this.previous_angle));
-        _this.currentGuess.setAttribute("cy", _this.radius * Math.sin(_this.previous_angle));
+        radius = _this.majorCircle.attributes[3].value;
+        _this.currentGuess.setAttribute("cx", radius * Math.cos(_this.previous_angle));
+        _this.currentGuess.setAttribute("cy", radius * Math.sin(_this.previous_angle));
         _this.circleCanvas.getElementsByTagName('animate')[0].beginElement();
         _this.circleCanvas.removeEventListener('mousemove', ccMouseMove);
         _this.circleCanvas.removeEventListener('click', ccMouseClick);
@@ -168,15 +165,14 @@
         return setTimeout(restartGuessingTask, 4000);
       };
       ccMouseMove = function(e) {
-        var angle, box, coord;
+        var angle, coord, radius;
         coord = getCursorPosition(e);
         angle = Math.atan2(coord.y, coord.x);
-        _this.angleLine.setAttribute("x2", _this.radius * Math.cos(angle));
-        _this.angleLine.setAttribute("y2", _this.radius * Math.sin(angle));
-        _this.targetCircle.setAttribute("cx", _this.radius * Math.cos(angle));
-        _this.targetCircle.setAttribute("cy", _this.radius * Math.sin(angle));
-        console.log(coord.x + ":" + coord.y + ":" + angle);
-        return box = _this.circleCanvas.getBBox();
+        radius = _this.majorCircle.attributes[3].value;
+        _this.angleLine.setAttribute("x2", radius * Math.cos(angle));
+        _this.angleLine.setAttribute("y2", radius * Math.sin(angle));
+        _this.targetCircle.setAttribute("cx", radius * Math.cos(angle));
+        return _this.targetCircle.setAttribute("cy", radius * Math.sin(angle));
       };
       animateRankText = function() {};
       restartGuessingTask = function() {
@@ -203,7 +199,13 @@
       };
       init = function() {
         _this.zoom_level = 0.2;
-        _this.circleCanvas.addEventListener('click', ccMouseClick2, false);
+        _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
+        _this.circleCanvas.addEventListener('click', ccMouseClick, false);
+        _this.circleCanvas.onwheel = ccMouseWheel;
+        _this.circleCanvas.onmousewheel = ccMouseWheel;
+        if (_this.isFirefox) {
+          _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
+        }
         _this.rankText.textContent = "";
         return init_canvas();
       };
