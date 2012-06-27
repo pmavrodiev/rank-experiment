@@ -8,6 +8,7 @@
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
       this.targetCircle = document.getElementById("targetCircle");
+      this.rememberTargetCircle = this.circleCanvas.createSVGPoint();
       this.currentGuess = document.getElementById("currentGuess");
       this.angleLine = document.getElementById("angleLine");
       this.rankText = document.getElementById("rankText");
@@ -16,81 +17,18 @@
       this.viewport_size = 1050;
       this.viewport_axis_x = 525;
       this.viewport_axis_y = 490;
-      this.centre_coord = circleCanvas.createSVGPoint();
       this.zoom_scale = 0.2;
+      this.zoom_level = 1;
       this.previous_angle = Math.PI / 2;
       this.rankTextOpacity = 1;
       this.timedHover;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Gecko") !== -1;
-      window.addEventListener('load', this.windowListen(), false);
+      window.addEventListener('onload', this.windowListen(), false);
     }
 
-    rank_experiment.prototype.windowListen2 = function() {
-      var animateRankText, ccMouseClick2, ccMouseMove2, getCursorPosition2, init, init_canvas, update_zoom,
-        _this = this;
-      getCursorPosition2 = function(e) {
-        var pt, pt2, transformation_matrix;
-        pt = _this.circleCanvas.createSVGPoint();
-        pt.x = e.x;
-        pt.y = e.y;
-        transformation_matrix = _this.compositeG.getScreenCTM();
-        pt2 = pt.matrixTransform(transformation_matrix.inverse());
-        return pt2;
-      };
-      ccMouseClick2 = function(e) {
-        var circleParent, circleScaled, circle_xy, coord, s, smatrix, tm, tmnew2, tmparent, tmscaled, xtm, xtmparent, xtmscaled;
-        coord = getCursorPosition2(e);
-        xtmparent = _this.circleCanvas.createSVGPoint();
-        xtm = _this.circleCanvas.createSVGPoint();
-        circle_xy = _this.circleCanvas.createSVGPoint();
-        xtmparent.x = e.x;
-        xtmparent.y = e.y;
-        xtm.x = coord.x;
-        xtm.y = coord.y;
-        circle_xy.x = _this.littleCircle.cx.baseVal.value;
-        circle_xy.y = _this.littleCircle.cy.baseVal.value;
-        tm = _this.compositeG.getScreenCTM();
-        tmscaled = tm.scale(1.75);
-        tmparent = _this.circleCanvas.getScreenCTM();
-        xtmscaled = xtmparent.matrixTransform(tmscaled.inverse());
-        circleParent = circle_xy.matrixTransform(tm);
-        circleScaled = circleParent.matrixTransform(tmscaled.inverse());
-        smatrix = tmparent.inverse().multiply(tmscaled);
-        s = "matrix(" + smatrix.a + "," + smatrix.b + "," + smatrix.c + "," + smatrix.d + "," + smatrix.e + "," + smatrix.f + ")";
-        _this.littleCircle.setAttribute("cx", circleScaled.x);
-        _this.littleCircle.setAttribute("cy", circleScaled.y);
-        _this.compositeG.setAttribute("transform", s);
-        return tmnew2 = _this.compositeG.getScreenCTM();
-      };
-      ccMouseMove2 = function(e) {
-        var coord;
-        coord = getCursorPosition2(e);
-        return console.log(e.x + ":" + e.y + ":::" + coord.x + ":" + coord.y);
-      };
-      animateRankText = function() {};
-      update_zoom = function() {
-        /*
-              viewport.setAttribute("transform",
-                                      "translate("+ centre_coord.x+","+ centre_coord.y +") "+
-                    "scale("+zoom_positions[zoom_level]+","+(-zoom_positions[zoom_level])+")")
-        */
-
-      };
-      init_canvas = function() {
-        return update_zoom();
-      };
-      init = function() {
-        _this.zoom_level = 0.2;
-        _this.compositeG.addEventListener('mousemove', ccMouseMove2, false);
-        _this.compositeG.addEventListener('click', ccMouseClick2, false);
-        return init_canvas();
-      };
-      return init();
-    };
-
     rank_experiment.prototype.windowListen = function() {
-      var animateRankText, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, init_canvas, restartGuessingTask, update_zoom,
+      var ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, restartGuessingTask,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -102,7 +40,7 @@
         return pt2;
       };
       ccMouseWheel = function(event) {
-        var circleParent, circleScaled, circle_xy, coord, deltaX, deltaY, e, line_y, s, smatrix, tm, tmparent, tmscaled, zoom, zoomLevel;
+        var circleParent, circleScaled, deltaX, deltaY, e, s, smatrix, tm, tm2, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y, zoom, zoomLevel;
         e = event || window.event;
         deltaX = e.deltaX * -30 || e.wheelDeltaX / 40 || 0;
         deltaY = e.deltaY * -30 || e.wheelDeltaY / 109 || (e.wheelDeltaY === void 0 && e.wheelDelta / 109) || e.detail * -10 || 0;
@@ -127,25 +65,36 @@
         if (_this.isFirefox && e.type !== "DOMMouseScroll") {
           _this.circleCanvas.removeEventListener("DOMMouseScroll", ccMouseWheel, false);
         }
+        if (e.preventDefault) {
+          e.preventDefault();
+        }
+        if (e.stopPropagation) {
+          e.stopPropagation();
+        }
+        e.cancelBubble = true;
+        e.returnValue = false;
         zoomLevel = Math.pow(1 + _this.zoom_scale, deltaY);
-        coord = getCursorPosition(e);
-        circle_xy = _this.circleCanvas.createSVGPoint();
-        line_y = _this.circleCanvas.createSVGPoint();
-        circle_xy.x = _this.targetCircle.cx.baseVal.value;
-        circle_xy.y = _this.targetCircle.cy.baseVal.value;
+        if (_this.zoom_level === 1) {
+          _this.rememberTargetCircle.x = _this.targetCircle.cx.baseVal.value;
+          _this.rememberTargetCircle.y = _this.targetCircle.cy.baseVal.value;
+        }
+        if (zoomLevel > 1) {
+          _this.zoom_level++;
+        } else {
+          _this.zoom_level--;
+        }
         tm = _this.compositeG.getScreenCTM();
         tmscaled = tm.scale(zoomLevel);
         tmparent = _this.circleCanvas.getScreenCTM();
-        circleParent = circle_xy.matrixTransform(tm);
+        circleParent = _this.rememberTargetCircle.matrixTransform(tm);
         circleScaled = circleParent.matrixTransform(tmscaled.inverse());
-        smatrix = tmparent.inverse().multiply(tmscaled);
+        translation_x = circleScaled.x - _this.rememberTargetCircle.x;
+        translation_y = circleScaled.y - _this.rememberTargetCircle.y;
+        tmscaledtranslated = tmscaled.translate(translation_x, translation_y);
+        smatrix = tmparent.inverse().multiply(tmscaledtranslated);
         s = "matrix(" + smatrix.a + "," + smatrix.b + "," + smatrix.c + "," + smatrix.d + "," + smatrix.e + "," + smatrix.f + ")";
-        _this.targetCircle.setAttribute("cx", circleScaled.x);
-        _this.targetCircle.setAttribute("cy", circleScaled.y);
-        _this.angleLine.setAttribute("x2", circleScaled.x);
-        _this.angleLine.setAttribute("y2", circleScaled.y);
-        _this.majorCircle.setAttribute("r", Math.sqrt(Math.pow(circleScaled.x, 2) + Math.pow(circleScaled.y, 2)));
         _this.compositeG.setAttribute("transform", s);
+        tm2 = _this.compositeG.getScreenCTM();
         return false;
       };
       ccMouseClick = function(e) {
@@ -161,7 +110,6 @@
         _this.msgText.textContent = "Wait for your opponents to guess...";
         _this.msgText.style.fill = "green";
         _this.rankTextOpacity = 1;
-        animateRankText();
         return setTimeout(restartGuessingTask, 4000);
       };
       ccMouseMove = function(e) {
@@ -174,31 +122,13 @@
         _this.targetCircle.setAttribute("cx", radius * Math.cos(angle));
         return _this.targetCircle.setAttribute("cy", radius * Math.sin(angle));
       };
-      animateRankText = function() {};
       restartGuessingTask = function() {
         _this.rankText.textContent = "Your new rank is: " + Math.ceil(Math.random() * 20);
         _this.rankText.style.fill = "black";
         _this.rankTextOpacity = 1;
-        animateRankText();
-        _this.zoom_level = 0;
-        _this.circleCanvas.addEventListener('mousemove', ccMouseMove, false);
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
-      update_zoom = function() {
-        /*
-              viewport.setAttribute("transform",
-                                      "translate("+ centre_coord.x+","+ centre_coord.y +") "+
-                    "scale("+zoom_positions[zoom_level]+","+(-zoom_positions[zoom_level])+")")
-        */
-
-      };
-      init_canvas = function() {
-        _this.centre_coord.x = _this.viewport_axis_x;
-        _this.centre_coord.y = _this.viewport_axis_y;
-        return update_zoom();
-      };
       init = function() {
-        _this.zoom_level = 0.2;
         _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
         _this.circleCanvas.addEventListener('click', ccMouseClick, false);
         _this.circleCanvas.onwheel = ccMouseWheel;
@@ -206,8 +136,7 @@
         if (_this.isFirefox) {
           _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
         }
-        _this.rankText.textContent = "";
-        return init_canvas();
+        return _this.rankText.textContent = "";
       };
       return init();
     };
