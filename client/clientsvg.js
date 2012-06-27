@@ -4,6 +4,12 @@
   window.rank_experiment = (function() {
 
     function rank_experiment() {
+      this.windowWidth = window.innerWidth;
+      this.windowHeight = window.innerHeight;
+      this.buttonNext = document.getElementById("next");
+      this.buttonPrevious = document.getElementById("previous");
+      this.instructionsText = document.getElementById("instructions");
+      this.previousInstruction = this.instructionsText.textContent;
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
@@ -11,16 +17,9 @@
       this.rememberTargetCircle = this.circleCanvas.createSVGPoint();
       this.currentGuess = document.getElementById("currentGuess");
       this.angleLine = document.getElementById("angleLine");
-      this.rankText = document.getElementById("rankText");
-      this.angleText = document.getElementById("angleText");
-      this.msgText = document.getElementById("msgText");
-      this.viewport_size = 1050;
-      this.viewport_axis_x = 525;
-      this.viewport_axis_y = 490;
       this.zoom_scale = 0.2;
       this.zoom_level = 1;
       this.previous_angle = Math.PI / 2;
-      this.rankTextOpacity = 1;
       this.timedHover;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Gecko") !== -1;
@@ -28,7 +27,7 @@
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, restartGuessingTask,
+      var ccMouseClick, ccMouseMove, ccMouseWheel, ccOnResize, getCursorPosition, init, next, prev, restartGuessingTask,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -107,8 +106,6 @@
         _this.circleCanvas.getElementsByTagName('animate')[0].beginElement();
         _this.circleCanvas.removeEventListener('mousemove', ccMouseMove);
         _this.circleCanvas.removeEventListener('click', ccMouseClick);
-        _this.msgText.textContent = "Wait for your opponents to guess...";
-        _this.msgText.style.fill = "green";
         _this.rankTextOpacity = 1;
         return setTimeout(restartGuessingTask, 4000);
       };
@@ -123,20 +120,32 @@
         return _this.targetCircle.setAttribute("cy", radius * Math.sin(angle));
       };
       restartGuessingTask = function() {
-        _this.rankText.textContent = "Your new rank is: " + Math.ceil(Math.random() * 20);
-        _this.rankText.style.fill = "black";
         _this.rankTextOpacity = 1;
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
+      ccOnResize = function() {
+        _this.windowWidth = window.innerWidth;
+        _this.windowHeight = window.innerHeight;
+        return _this.circleCanvas.attributes[5].nodeValue = "height:" + 0.9 * _this.windowHeight + "px!important;width:" + _this.windowWidth * 0.635 + "px!important;";
+      };
+      next = function() {
+        return _this.instructionsText.textContent = "";
+      };
+      prev = function() {
+        return _this.instructionsText.textContent = _this.previousInstruction;
+      };
       init = function() {
+        _this.circleCanvas.attributes[5].nodeValue = "height:" + 1 * _this.windowHeight + "px!important;width:" + _this.windowWidth * 0.635 + "px!important;";
         _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
         _this.circleCanvas.addEventListener('click', ccMouseClick, false);
+        window.onresize = ccOnResize;
         _this.circleCanvas.onwheel = ccMouseWheel;
         _this.circleCanvas.onmousewheel = ccMouseWheel;
         if (_this.isFirefox) {
           _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
         }
-        return _this.rankText.textContent = "";
+        _this.buttonNext.onclick = next;
+        return _this.buttonPrevious.onclick = prev;
       };
       return init();
     };

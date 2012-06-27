@@ -1,5 +1,13 @@
 class window.rank_experiment
   constructor: () ->
+    #general browser stuff
+    @windowWidth = window.innerWidth
+    @windowHeight = window.innerHeight
+    @buttonNext = document.getElementById("next")
+    @buttonPrevious = document.getElementById("previous")
+    @instructionsText = document.getElementById("instructions")
+    @previousInstruction = @instructionsText.textContent
+    #drawing elements
     @compositeG=document.getElementById "svgCanvas" 
     @circleCanvas=document.getElementById("circleCanvas")
     @majorCircle=document.getElementById("majorCircle") 
@@ -7,22 +15,13 @@ class window.rank_experiment
     @rememberTargetCircle = @circleCanvas.createSVGPoint()
     @currentGuess=document.getElementById("currentGuess") 
     @angleLine=document.getElementById("angleLine") 
-    @rankText=document.getElementById("rankText")
-    @angleText=document.getElementById("angleText")
-    @msgText=document.getElementById("msgText")
- 
-
-    
-    @viewport_size=1050
-    @viewport_axis_x = 525 #the translated x axis of the <g> component in svgcanvas.html
-    @viewport_axis_y = 490 #the translated y axis of the <g> component in svgcanvas.html
-  
+    #@rankText=document.getElementById("rankText")
+    #@angleText=document.getElementById("angleText")
+    #@msgText=document.getElementById("msgText")
 
     @zoom_scale = 0.2
     @zoom_level = 1 #the nestedness of the zoom
     @previous_angle = Math.PI/2
-  
-    @rankTextOpacity = 1  
     @timedHover
     @isMacWebKit = navigator.userAgent.indexOf("Macintosh") != -1 &&
                 navigator.userAgent.indexOf("WebKit") != -1
@@ -41,7 +40,7 @@ class window.rank_experiment
       pt.x = e.x
       pt.y = e.y
 
-      #transformation_matrix = @circleCanvas.getScreenCTM()
+   
       transformation_matrix = @compositeG.getScreenCTM()
       pt2 = pt.matrixTransform(transformation_matrix.inverse())  
       return pt2
@@ -134,8 +133,8 @@ class window.rank_experiment
       @circleCanvas.getElementsByTagName('animate')[0].beginElement()
       @circleCanvas.removeEventListener('mousemove',ccMouseMove)
       @circleCanvas.removeEventListener('click',ccMouseClick)
-      @msgText.textContent = "Wait for your opponents to guess..."
-      @msgText.style.fill="green"
+      #@msgText.textContent = "Wait for your opponents to guess..."
+      #@msgText.style.fill="green"
       @rankTextOpacity = 1
       
       setTimeout(restartGuessingTask, 4000)  
@@ -157,28 +156,36 @@ class window.rank_experiment
 
   
    restartGuessingTask = () =>
-      @rankText.textContent = "Your new rank is: "+ Math.ceil( Math.random()*20) 
-      @rankText.style.fill="black"
+      #@rankText.textContent = "Your new rank is: "+ Math.ceil( Math.random()*20) 
+      #@rankText.style.fill="black"
       @rankTextOpacity = 1
     
       @circleCanvas.addEventListener('click', ccMouseClick, false)
   
-
+   ccOnResize = () =>
+      @windowWidth = window.innerWidth
+      @windowHeight = window.innerHeight
+      @circleCanvas.attributes[5].nodeValue = "height:"+0.9*@windowHeight+"px!important;width:"+@windowWidth*0.635+"px!important;"
   
-
-  
-  
-   init = () =>
+   next = () =>
+      @instructionsText.textContent = ""
     
+   prev = () =>  
+      @instructionsText.textContent = @previousInstruction
+   init = () =>
+      #init size
+      @circleCanvas.attributes[5].nodeValue = "height:"+1*@windowHeight+"px!important;width:"+@windowWidth*0.635+"px!important;"
       @compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
       @circleCanvas.addEventListener('click', ccMouseClick, false) #fired when mouse is pressed AND released
+      window.onresize = ccOnResize
       #add mousewheel event   
       @circleCanvas.onwheel = ccMouseWheel #future browsers
       @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
       if (@isFirefox)
         @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
-    
-      @rankText.textContent = ""
+      #buttons
+      @buttonNext.onclick = next
+      @buttonPrevious.onclick = prev
 
     
     

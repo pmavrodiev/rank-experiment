@@ -18,8 +18,9 @@
 	<script src="js/jquery-ui.js" type="text/javascript" ></script>
 	<script src="js/jquery.js" type="text/javascript" ></script>
 	<script>
-		console.log(screen.availHeight)		
-    </script>
+		var windowWidth = window.innerWidth
+		var windowHeight = window.innerHeight
+	</script>
 
 </head>  
  
@@ -33,30 +34,30 @@
 <svg id="circleCanvas" xmlns="http://www.w3.org/2000/svg" 
     xmlns:xlink="http://www.w3.org/1999/xlink"
     xmlns:svg="http://www.w3.org/2000/svg"
-    xml:space="preserve" style="height: 788px!important;width:910px!important;">
+    xml:space="preserve" style="height:788px!important;width:1010px!important;">
 
-    <g id="svgCanvas" transform="translate(470,395) scale(1,-1)" style="position:absolute" >
-      <circle id="majorCircle" cx="0" cy="0" r="380" stroke="blue" fill="white"
+    <g id="svgCanvas" transform="translate(470,375) scale(1,-1)" style="position:absolute" >
+      <circle id="majorCircle" cx="0" cy="0" r="370" stroke="blue" fill="white"
         stroke-width="3"> 
       </circle>        
-      <circle id="targetCircle" cx="0" cy="380" r="4" stroke="green" fill="none"
+      <circle id="targetCircle" cx="0" cy="370" r="4" stroke="green" fill="none"
         stroke-width="4">
       </circle>
-      <circle id="currentGuess" cx="0" cy="380" r="4" stroke="red" fill="none"
+      <circle id="currentGuess" cx="0" cy="370" r="4" stroke="red" fill="none"
         stroke-width="4">
         <animate attributeName="r" to="18" dur="1s" repeatCount="3">
       </circle>
         
-      <line id="angleLine" x1="0" y1="0" x2="0" y2="380" stroke="green" fill="none" stroke-width="2">
+      <line id="angleLine" x1="0" y1="0" x2="0" y2="370" stroke="green" fill="none" stroke-width="2">
       </line>	
       
-      <rect x="375" y="-5" height="10" width="10" fill="none" stroke="black">
+      <rect x="365" y="-5" height="10" width="10" fill="none" stroke="black">
       </rect>
-      <rect x="-385" y="-5" height="10" width="10" fill="none" stroke="black">
+      <rect x="-375" y="-5" height="10" width="10" fill="none" stroke="black">
       </rect>
-      <rect x="-5" y="375" height="10" width="10" fill="none" stroke="black">
+      <rect x="-5" y="365" height="10" width="10" fill="none" stroke="black">
       </rect>
-      <rect x="-5" y="-385" height="10" width="10" fill="none" stroke="black">
+      <rect x="-5" y="-375" height="10" width="10" fill="none" stroke="black">
       </rect>
     </g> 
 </svg>
@@ -78,29 +79,31 @@ finishes when all players have made their choices.</p>
  closest to the hidden point. Conversely, if you are farthest from the point, you rank
  last.
 </p>
+
+<p>
+ Click "Next" for a quick practice.
+</p>
 </text>
 <br><br><br><br><br><br><br>
-<button type="button" style="margin-left:20px">Previous</button>
-<button type="button" style="margin-left:330px">Next</button>
-
-
-
+<button id="previous" type="button" style="margin-left:20px">Previous</button>
+<button id="next" type="button" style="margin-left:330px">Next</button>
 
 </td>
 </tr>
 </table>
 
-
+<!--
   <text id="rankText" x="-200" y="90" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible">Your rank is: 1</text>
   <text id="angleText" x="-200" y="130" font-family="Arial" font-size="30" color="blue" opacity="1" visibility="visible"></text>
   <text id="msgText" x="-200" y="170" font-family="Arial"   font-size="30" color="blue" opacity="1" visibility="visible"></text>
-    
+-->    
 <script src="clientsvg.js"></script>
 <script>
 	 $(document).ready(function() {
     	new rank_experiment()
     });	
 </script>
+
 
 
 </body>
