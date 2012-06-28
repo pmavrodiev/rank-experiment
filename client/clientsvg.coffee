@@ -1,12 +1,12 @@
 class window.rank_experiment
   constructor: () ->
     #general browser stuff
-    @windowWidth = window.innerWidth
-    @windowHeight = window.innerHeight
+    #@windowWidth = window.innerWidth
+    #@windowHeight = window.innerHeight
     @buttonNext = document.getElementById("next")
     @buttonPrevious = document.getElementById("previous")
     @instructionsText = document.getElementById("instructions")
-    @previousInstruction = @instructionsText.textContent
+    #@previousInstruction = @instructionsText.textContent
     #drawing elements
     @compositeG=document.getElementById "svgCanvas" 
     @circleCanvas=document.getElementById("circleCanvas")
@@ -15,10 +15,14 @@ class window.rank_experiment
     @rememberTargetCircle = @circleCanvas.createSVGPoint()
     @currentGuess=document.getElementById("currentGuess") 
     @angleLine=document.getElementById("angleLine") 
-    #@rankText=document.getElementById("rankText")
+    @rankText=document.getElementById("rankText")
     #@angleText=document.getElementById("angleText")
     #@msgText=document.getElementById("msgText")
-
+    
+    #instructions
+    @instructionVector = new Array()
+    @instructionIndex = 0
+    
     @zoom_scale = 0.2
     @zoom_level = 1 #the nestedness of the zoom
     @previous_angle = Math.PI/2
@@ -28,7 +32,13 @@ class window.rank_experiment
                 
     @isFirefox = navigator.userAgent.indexOf("Gecko") != -1
     
-    window.addEventListener('onload',@windowListen(),false)     
+    #misc
+    @flip = 0
+    
+    if (@isFirefox)
+      window.load = @windowListen()
+    else
+      window.addEventListener('onload',@windowListen(),false)     
     
 
           
@@ -37,8 +47,8 @@ class window.rank_experiment
   
    getCursorPosition = (e) => 
       pt = @circleCanvas.createSVGPoint()
-      pt.x = e.x
-      pt.y = e.y
+      pt.x = e.clientX
+      pt.y = e.clientY
 
    
       transformation_matrix = @compositeG.getScreenCTM()
@@ -82,6 +92,9 @@ class window.rank_experiment
         deltaX /= 30;
         deltaY /= 30;
       
+      if (@isFirefox)
+        deltaY = Math.abs(deltaY) / (deltaY*109/120)
+        
       # If we ever get a mousewheel or wheel event in (a future version of)
       # Firefox, then we don't need DOMMouseScroll anymore.
       if (@isFirefox && e.type != "DOMMouseScroll")
@@ -121,28 +134,42 @@ class window.rank_experiment
       
       @compositeG.setAttribute("transform",s)
       tm2 = @compositeG.getScreenCTM()
+      
+      @buttonNext.disabled=false
       return false  
    
    ccMouseClick = (e) =>
+      e = e || window.event
       coord = getCursorPosition(e)    
       @previous_angle = Math.atan2(coord.y,coord.x)
       radius = @majorCircle.attributes[3].value
       @currentGuess.setAttribute("cx",radius*Math.cos(@previous_angle))
       @currentGuess.setAttribute("cy",radius*Math.sin(@previous_angle))
 
-      @circleCanvas.getElementsByTagName('animate')[0].beginElement()
-      @circleCanvas.removeEventListener('mousemove',ccMouseMove)
-      @circleCanvas.removeEventListener('click',ccMouseClick)
-      #@msgText.textContent = "Wait for your opponents to guess..."
-      #@msgText.style.fill="green"
-      @rankTextOpacity = 1
+      animatedElement = @circleCanvas.getElementsByTagName('animate')
+      animatedElement[0].attributes[2].nodeValue = "1s"  
+      animatedElement[0].beginElement()
       
-      setTimeout(restartGuessingTask, 4000)  
+      if !@flip and @instructionIndex == 1
+        @instructionsText.textContent += "\n\rThe small red circle at the selected position shows your last quess.\n\r"
+        @buttonNext.disabled=false
+        @flip = 1
+      
+      if @rankText.textContent!= ""
+        @rankText.textContent="Your Rank: "+ Math.floor(1+Math.random()*25) + " (25)"
+      
+      #@circleCanvas.removeEventListener('mousemove',ccMouseMove)
+      #@circleCanvas.removeEventListener('click',ccMouseClick)
+
+
+      
+      #setTimeout(restartGuessingTask, 4000)  
     
   
    
    
    ccMouseMove = (e) =>
+      e = e || window.event
       coord = getCursorPosition(e)
       angle = Math.atan2(coord.y,coord.x)
       radius = @majorCircle.attributes[3].value
@@ -155,38 +182,105 @@ class window.rank_experiment
 
 
   
-   restartGuessingTask = () =>
-      #@rankText.textContent = "Your new rank is: "+ Math.ceil( Math.random()*20) 
-      #@rankText.style.fill="black"
-      @rankTextOpacity = 1
-    
+   restartGuessingTask = () =>    
       @circleCanvas.addEventListener('click', ccMouseClick, false)
-  
-   ccOnResize = () =>
-      @windowWidth = window.innerWidth
-      @windowHeight = window.innerHeight
-      @circleCanvas.attributes[5].nodeValue = "height:"+0.9*@windowHeight+"px!important;width:"+@windowWidth*0.635+"px!important;"
+
   
    next = () =>
-      @instructionsText.textContent = ""
+      @instructionIndex++
+    
+      
+      if @instructionIndex == 1
+        @compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
+        @circleCanvas.addEventListener('click', ccMouseClick, false) #fired when mouse is pressed AND released
+      if @instructionIndex == 2
+        @circleCanvas.onwheel = ccMouseWheel #future browsers
+        @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
+        if (@isFirefox)
+          @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
+   
+      @instructionsText.textContent = @instructionVector[@instructionIndex]
+      
+      @buttonNext.disabled=true
+      @buttonPrevious.disabled=false
+      
+      if @instructionIndex == 3   
+        @rankText.textContent = "Your Rank: 1 (25)"
+        @buttonNext.innerText = "Start"
+        @buttonNext.disabled=false        
     
    prev = () =>  
-      @instructionsText.textContent = @previousInstruction
-   init = () =>
-      #init size
-      @circleCanvas.attributes[5].nodeValue = "height:"+1*@windowHeight+"px!important;width:"+@windowWidth*0.635+"px!important;"
+      @flip = 0
+      @buttonPrevious.disabled=false  
+      @buttonNext.innerText = "Next"
+      @instructionIndex--
+      if @instructionIndex<=0 
+        @instructionIndex=0
+        @buttonPrevious.disabled=true
+        @buttonNext.disabled=false
+      else
+        @buttonPrevious.disabled=false
+
+      @instructionsText.textContent = @instructionVector[@instructionIndex]
+      
+      
+      
+      if @instructionIndex != 0
+        @buttonNext.disabled=true
+      
+   initInstructions = () =>
+      @instructionVector[0] = "Welcome to our guessing game."+ 
+      "The purpose of the game is to find out the location of a hidden point " +
+      "that we have randomly positioned on the blue circle to the left."+
+      "You will compete with other players, and your performance, as well as reward, "+
+      "will be based on how close your guess is to the hidden point, compared to others.\n\r"+
+      "The game consists of 10 rounds. During each round, you have to make a guess "+
+      "by moving the green line around the circle and clicking on a desired position. "+
+      "A round finishes when all players have made their choices.\n\r"+
+      "At the beginning of each round, you will be informed of your relative ranking. "+
+      "Your rank is 1 if you are the player currently closest to the hidden point. "+
+      "Conversely, if you are farthest from the point, you rank last.\n\r" + 
+      "Click \"Next\" for a quick practice."
+      
+      @instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ..."
+      
+      @instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel. " + 
+                              "The zoom is with respect to the current position of the green line.\n\r"+
+                              "Try zooming in and out a few times to get used to this functionality ... "
+      
+      @instructionVector[3] = "Finally, your current rank is displayed above the circle. "+
+                              "The number in the brackets shows the total number "+
+                              "of players. Your rank will be updated at the end of each round, after all players "+ 
+                              " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r"+
+                              "With this last bit of information, the practice session ends. You can continue "+
+                              "playing with the circle, in which case random rank information will be presented. "+
+                              "Alternatively, you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r"+
+                              "Once you are ready, hit \"Start\" to begin the game."
+                              
+     
+            
+      @instructionsText.textContent = @instructionVector[@instructionIndex] #idx should be 0
+      
+   addListeners = () =>
       @compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
       @circleCanvas.addEventListener('click', ccMouseClick, false) #fired when mouse is pressed AND released
-      window.onresize = ccOnResize
       #add mousewheel event   
       @circleCanvas.onwheel = ccMouseWheel #future browsers
       @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
       if (@isFirefox)
         @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
+   
+   init = () =>
+     
+    
+      #addListeners()
+    
       #buttons
       @buttonNext.onclick = next
       @buttonPrevious.onclick = prev
-
+      @buttonPrevious.disabled=true
+      
+      initInstructions()
     
     
    init()

@@ -4,12 +4,9 @@
   window.rank_experiment = (function() {
 
     function rank_experiment() {
-      this.windowWidth = window.innerWidth;
-      this.windowHeight = window.innerHeight;
       this.buttonNext = document.getElementById("next");
       this.buttonPrevious = document.getElementById("previous");
       this.instructionsText = document.getElementById("instructions");
-      this.previousInstruction = this.instructionsText.textContent;
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
@@ -17,23 +14,31 @@
       this.rememberTargetCircle = this.circleCanvas.createSVGPoint();
       this.currentGuess = document.getElementById("currentGuess");
       this.angleLine = document.getElementById("angleLine");
+      this.rankText = document.getElementById("rankText");
+      this.instructionVector = new Array();
+      this.instructionIndex = 0;
       this.zoom_scale = 0.2;
       this.zoom_level = 1;
       this.previous_angle = Math.PI / 2;
       this.timedHover;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Gecko") !== -1;
-      window.addEventListener('onload', this.windowListen(), false);
+      this.flip = 0;
+      if (this.isFirefox) {
+        window.load = this.windowListen();
+      } else {
+        window.addEventListener('onload', this.windowListen(), false);
+      }
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var ccMouseClick, ccMouseMove, ccMouseWheel, ccOnResize, getCursorPosition, init, next, prev, restartGuessingTask,
+      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, next, prev, restartGuessingTask,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
         pt = _this.circleCanvas.createSVGPoint();
-        pt.x = e.x;
-        pt.y = e.y;
+        pt.x = e.clientX;
+        pt.y = e.clientY;
         transformation_matrix = _this.compositeG.getScreenCTM();
         pt2 = pt.matrixTransform(transformation_matrix.inverse());
         return pt2;
@@ -60,6 +65,9 @@
         if (_this.isMacWebKit) {
           deltaX /= 30;
           deltaY /= 30;
+        }
+        if (_this.isFirefox) {
+          deltaY = Math.abs(deltaY) / (deltaY * 109 / 120);
         }
         if (_this.isFirefox && e.type !== "DOMMouseScroll") {
           _this.circleCanvas.removeEventListener("DOMMouseScroll", ccMouseWheel, false);
@@ -94,23 +102,32 @@
         s = "matrix(" + smatrix.a + "," + smatrix.b + "," + smatrix.c + "," + smatrix.d + "," + smatrix.e + "," + smatrix.f + ")";
         _this.compositeG.setAttribute("transform", s);
         tm2 = _this.compositeG.getScreenCTM();
+        _this.buttonNext.disabled = false;
         return false;
       };
       ccMouseClick = function(e) {
-        var coord, radius;
+        var animatedElement, coord, radius;
+        e = e || window.event;
         coord = getCursorPosition(e);
         _this.previous_angle = Math.atan2(coord.y, coord.x);
         radius = _this.majorCircle.attributes[3].value;
         _this.currentGuess.setAttribute("cx", radius * Math.cos(_this.previous_angle));
         _this.currentGuess.setAttribute("cy", radius * Math.sin(_this.previous_angle));
-        _this.circleCanvas.getElementsByTagName('animate')[0].beginElement();
-        _this.circleCanvas.removeEventListener('mousemove', ccMouseMove);
-        _this.circleCanvas.removeEventListener('click', ccMouseClick);
-        _this.rankTextOpacity = 1;
-        return setTimeout(restartGuessingTask, 4000);
+        animatedElement = _this.circleCanvas.getElementsByTagName('animate');
+        animatedElement[0].attributes[2].nodeValue = "1s";
+        animatedElement[0].beginElement();
+        if (!_this.flip && _this.instructionIndex === 1) {
+          _this.instructionsText.textContent += "\n\rThe small red circle at the selected position shows your last quess.\n\r";
+          _this.buttonNext.disabled = false;
+          _this.flip = 1;
+        }
+        if (_this.rankText.textContent !== "") {
+          return _this.rankText.textContent = "Your Rank: " + Math.floor(1 + Math.random() * 25) + " (25)";
+        }
       };
       ccMouseMove = function(e) {
         var angle, coord, radius;
+        e = e || window.event;
         coord = getCursorPosition(e);
         angle = Math.atan2(coord.y, coord.x);
         radius = _this.majorCircle.attributes[3].value;
@@ -120,32 +137,68 @@
         return _this.targetCircle.setAttribute("cy", radius * Math.sin(angle));
       };
       restartGuessingTask = function() {
-        _this.rankTextOpacity = 1;
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
-      ccOnResize = function() {
-        _this.windowWidth = window.innerWidth;
-        _this.windowHeight = window.innerHeight;
-        return _this.circleCanvas.attributes[5].nodeValue = "height:" + 0.9 * _this.windowHeight + "px!important;width:" + _this.windowWidth * 0.635 + "px!important;";
-      };
       next = function() {
-        return _this.instructionsText.textContent = "";
+        _this.instructionIndex++;
+        if (_this.instructionIndex === 1) {
+          _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
+          _this.circleCanvas.addEventListener('click', ccMouseClick, false);
+        }
+        if (_this.instructionIndex === 2) {
+          _this.circleCanvas.onwheel = ccMouseWheel;
+          _this.circleCanvas.onmousewheel = ccMouseWheel;
+          if (_this.isFirefox) {
+            _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
+          }
+        }
+        _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
+        _this.buttonNext.disabled = true;
+        _this.buttonPrevious.disabled = false;
+        if (_this.instructionIndex === 3) {
+          _this.rankText.textContent = "Your Rank: 1 (25)";
+          _this.buttonNext.innerText = "Start";
+          return _this.buttonNext.disabled = false;
+        }
       };
       prev = function() {
-        return _this.instructionsText.textContent = _this.previousInstruction;
+        _this.flip = 0;
+        _this.buttonPrevious.disabled = false;
+        _this.buttonNext.innerText = "Next";
+        _this.instructionIndex--;
+        if (_this.instructionIndex <= 0) {
+          _this.instructionIndex = 0;
+          _this.buttonPrevious.disabled = true;
+          _this.buttonNext.disabled = false;
+        } else {
+          _this.buttonPrevious.disabled = false;
+        }
+        _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
+        if (_this.instructionIndex !== 0) {
+          return _this.buttonNext.disabled = true;
+        }
       };
-      init = function() {
-        _this.circleCanvas.attributes[5].nodeValue = "height:" + 1 * _this.windowHeight + "px!important;width:" + _this.windowWidth * 0.635 + "px!important;";
+      initInstructions = function() {
+        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "that we have randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your guess is to the hidden point, compared to others.\n\r" + "The game consists of 10 rounds. During each round, you have to make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices.\n\r" + "At the beginning of each round, you will be informed of your relative ranking. " + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Conversely, if you are farthest from the point, you rank last.\n\r" + "Click \"Next\" for a quick practice.";
+        _this.instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ...";
+        _this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel. " + "The zoom is with respect to the current position of the green line.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
+        _this.instructionVector[3] = "Finally, your current rank is displayed above the circle. " + "The number in the brackets shows the total number " + "of players. Your rank will be updated at the end of each round, after all players " + " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle, in which case random rank information will be presented. " + "Alternatively, you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game.";
+        return _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
+      };
+      addListeners = function() {
         _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
         _this.circleCanvas.addEventListener('click', ccMouseClick, false);
-        window.onresize = ccOnResize;
         _this.circleCanvas.onwheel = ccMouseWheel;
         _this.circleCanvas.onmousewheel = ccMouseWheel;
         if (_this.isFirefox) {
-          _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
+          return _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
         }
+      };
+      init = function() {
         _this.buttonNext.onclick = next;
-        return _this.buttonPrevious.onclick = prev;
+        _this.buttonPrevious.onclick = prev;
+        _this.buttonPrevious.disabled = true;
+        return initInstructions();
       };
       return init();
     };
