@@ -1,14 +1,15 @@
 class window.rank_experiment
   constructor: () ->
     #general browser stuff
-    #@windowWidth = window.innerWidth
-    #@windowHeight = window.innerHeight
+    @windowWidth = window.innerWidth
+    @windowHeight = window.innerHeight
     @buttonNext = document.getElementById("next")
     @buttonPrevious = document.getElementById("previous")
     @instructionsText = document.getElementById("instructions")
-    #@previousInstruction = @instructionsText.textContent
+    @circleCanvasDiv = document.getElementById("circleCanvasDiv")
+    @instructionsDiv = document.getElementById("instructionsDiv")
     #drawing elements
-    @compositeG=document.getElementById "svgCanvas" 
+    @compositeG=document.getElementById("svgCanvas") 
     @circleCanvas=document.getElementById("circleCanvas")
     @majorCircle=document.getElementById("majorCircle") 
     @targetCircle=document.getElementById("targetCircle")
@@ -34,6 +35,7 @@ class window.rank_experiment
     
     #misc
     @flip = 0
+    @gameMode = false
     
     if (@isFirefox)
       window.load = @windowListen()
@@ -159,10 +161,7 @@ class window.rank_experiment
         @rankText.textContent="Your Rank: "+ Math.floor(1+Math.random()*25) + " (25)"
       
       #@circleCanvas.removeEventListener('mousemove',ccMouseMove)
-      #@circleCanvas.removeEventListener('click',ccMouseClick)
-
-
-      
+      #@circleCanvas.removeEventListener('click',ccMouseClick)      
       #setTimeout(restartGuessingTask, 4000)  
     
   
@@ -187,32 +186,42 @@ class window.rank_experiment
 
   
    next = () =>
-      @instructionIndex++
-    
-      
-      if @instructionIndex == 1
-        @compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
-        @circleCanvas.addEventListener('click', ccMouseClick, false) #fired when mouse is pressed AND released
-      if @instructionIndex == 2
-        @circleCanvas.onwheel = ccMouseWheel #future browsers
-        @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
+      if !@gameMode 
+        @instructionIndex++
+        if @instructionIndex == 1
+          @compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
+          @circleCanvas.addEventListener('click', ccMouseClick, false) #fired when mouse is pressed AND released
+        if @instructionIndex == 2
+          @circleCanvas.onwheel = ccMouseWheel #future browsers
+          @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
         if (@isFirefox)
           @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
    
-      @instructionsText.textContent = @instructionVector[@instructionIndex]
+        @instructionsText.textContent = @instructionVector[@instructionIndex]
       
-      @buttonNext.disabled=true
-      @buttonPrevious.disabled=false
+        @buttonNext.disabled=true
+        @buttonPrevious.disabled=false
       
-      if @instructionIndex == 3   
-        @rankText.textContent = "Your Rank: 1 (25)"
-        @buttonNext.innerText = "Start"
-        @buttonNext.disabled=false        
+        if @instructionIndex == 3   
+          @rankText.textContent = "Your Rank: 1 (25)"
+          @buttonNext.innerHTML = "Start"
+          @buttonNext.disabled=false
+          @gameMode = true
+      
+      else
+        @circleCanvasDiv.attributes[1].nodeValue = "height:100%;width:100%;float:left;"
+        #@instructionsDiv.attributes[1].nodeValue = "height:100%;width:0%;float:left;"
+        @instructionsDiv.parentNode.removeChild(@instructionsDiv)            
+        @instructionsText.textContent = ""
+        @compositeG.attributes[1].nodeValue = "translate("+ 0.5*@windowWidth + ","+0.5*@windowHeight+") scale(1,-1)"
+        @buttonNext.parentNode.removeChild(@buttonNext)
+        @buttonPrevious.parentNode.removeChild(@buttonPrevious)
+        
     
    prev = () =>  
       @flip = 0
       @buttonPrevious.disabled=false  
-      @buttonNext.innerText = "Next"
+      @buttonNext.innerHTML = "Next"
       @instructionIndex--
       if @instructionIndex<=0 
         @instructionIndex=0

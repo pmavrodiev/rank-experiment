@@ -4,9 +4,13 @@
   window.rank_experiment = (function() {
 
     function rank_experiment() {
+      this.windowWidth = window.innerWidth;
+      this.windowHeight = window.innerHeight;
       this.buttonNext = document.getElementById("next");
       this.buttonPrevious = document.getElementById("previous");
       this.instructionsText = document.getElementById("instructions");
+      this.circleCanvasDiv = document.getElementById("circleCanvasDiv");
+      this.instructionsDiv = document.getElementById("instructionsDiv");
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
@@ -24,6 +28,7 @@
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Gecko") !== -1;
       this.flip = 0;
+      this.gameMode = false;
       if (this.isFirefox) {
         window.load = this.windowListen();
       } else {
@@ -140,31 +145,41 @@
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
       next = function() {
-        _this.instructionIndex++;
-        if (_this.instructionIndex === 1) {
-          _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
-          _this.circleCanvas.addEventListener('click', ccMouseClick, false);
-        }
-        if (_this.instructionIndex === 2) {
-          _this.circleCanvas.onwheel = ccMouseWheel;
-          _this.circleCanvas.onmousewheel = ccMouseWheel;
+        if (!_this.gameMode) {
+          _this.instructionIndex++;
+          if (_this.instructionIndex === 1) {
+            _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
+            _this.circleCanvas.addEventListener('click', ccMouseClick, false);
+          }
+          if (_this.instructionIndex === 2) {
+            _this.circleCanvas.onwheel = ccMouseWheel;
+            _this.circleCanvas.onmousewheel = ccMouseWheel;
+          }
           if (_this.isFirefox) {
             _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
           }
-        }
-        _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
-        _this.buttonNext.disabled = true;
-        _this.buttonPrevious.disabled = false;
-        if (_this.instructionIndex === 3) {
-          _this.rankText.textContent = "Your Rank: 1 (25)";
-          _this.buttonNext.innerText = "Start";
-          return _this.buttonNext.disabled = false;
+          _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
+          _this.buttonNext.disabled = true;
+          _this.buttonPrevious.disabled = false;
+          if (_this.instructionIndex === 3) {
+            _this.rankText.textContent = "Your Rank: 1 (25)";
+            _this.buttonNext.innerHTML = "Start";
+            _this.buttonNext.disabled = false;
+            return _this.gameMode = true;
+          }
+        } else {
+          _this.circleCanvasDiv.attributes[1].nodeValue = "height:100%;width:100%;float:left;";
+          _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
+          _this.instructionsText.textContent = "";
+          _this.compositeG.attributes[1].nodeValue = "translate(" + 0.5 * _this.windowWidth + "," + 0.5 * _this.windowHeight + ") scale(1,-1)";
+          _this.buttonNext.parentNode.removeChild(_this.buttonNext);
+          return _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
         }
       };
       prev = function() {
         _this.flip = 0;
         _this.buttonPrevious.disabled = false;
-        _this.buttonNext.innerText = "Next";
+        _this.buttonNext.innerHTML = "Next";
         _this.instructionIndex--;
         if (_this.instructionIndex <= 0) {
           _this.instructionIndex = 0;

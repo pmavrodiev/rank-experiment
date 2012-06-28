@@ -10,12 +10,12 @@ height: 100%;
 textarea { 
     border-style: none; 
     border-color: Transparent; 
+    background-color:white;
     overflow: hidden;
     text-align:left;
     font-size:18px;
     font-family:helvetica, arial, sans-serif;
     resize:none;
-    user-select: none;
     -moz-user-select: none; /* for FireFox */
     -webkit-user-select: none; /* for Chrome and Safari */
     -khtml-user-select: none;

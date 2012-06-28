@@ -27,10 +27,15 @@
 <link rel="stylesheet" type="text/css" href="rank.css"/>
 
 <div style="width:100%;height:100%">
-	<div>
-		<textarea id="rankText" readonly="readonly" style="text-align:center;height:6%;width:100%;font-size:30px;"></textarea>
+	<div style="height:6%;width:100%;float:left;">
+		<div style="height:100%;width:10%;float:left;">
+		   <textarea id="statusText" readonly="readonly" style="text-align:center;height:100%;width:100%;font-size:30px;">asd</textarea>
+		</div>
+	    <div style="height:100%;width:90%;float:left;">
+	    	<textarea id="rankText" readonly="readonly" style="text-align:center;height:100%;width:100%;font-size:30px;"></textarea>
+	    </div>
 	</div>
-	<div style="height:100%;width:60%;float:left;">
+	<div id="circleCanvasDiv" style="height:100%;width:60%;float:left;">
 		<svg id="circleCanvas" xmlns="http://www.w3.org/1999/xhtml" 
 		     xmlns:svg="http://www.w3.org/2000/svg" 
 		     style="height:100%;width:100%;overflow:visible;"
@@ -50,7 +55,7 @@
         	</g> 
         </svg>
 	</div>
-	<div style="height:100%;width:35%;float:left;">
+	<div id="instructionsDiv"style="height:100%;width:35%;float:left;">
 		<div style="height:70%;width:100%;">
 			<textarea id="instructions" readonly="readonly" style="height:100%;width:100%;">
 			</textarea>
