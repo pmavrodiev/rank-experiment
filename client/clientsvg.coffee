@@ -8,6 +8,8 @@ class window.rank_experiment
     @instructionsText = document.getElementById("instructions")
     @circleCanvasDiv = document.getElementById("circleCanvasDiv")
     @instructionsDiv = document.getElementById("instructionsDiv")
+    @gameTextDiv = document.getElementById("gameTextDiv")
+    @gameText = document.getElementById("gameText")
     #drawing elements
     @compositeG=document.getElementById("svgCanvas") 
     @circleCanvas=document.getElementById("circleCanvas")
@@ -25,13 +27,13 @@ class window.rank_experiment
     @instructionIndex = 0
     
     @zoom_scale = 0.2
-    @zoom_level = 1 #the nestedness of the zoom
+    @zoom_level = 0 #the nestedness of the zoom
     @previous_angle = Math.PI/2
     @timedHover
     @isMacWebKit = navigator.userAgent.indexOf("Macintosh") != -1 &&
                 navigator.userAgent.indexOf("WebKit") != -1
                 
-    @isFirefox = navigator.userAgent.indexOf("Gecko") != -1
+    @isFirefox = navigator.userAgent.indexOf("Firefox") != -1
     
     #misc
     @flip = 0
@@ -58,6 +60,36 @@ class window.rank_experiment
       return pt2
       
       
+   announceME = (theUrl) =>
+    xmlHttp = null;
+    xmlHttp = new XMLHttpRequest()
+    xmlHttp.open( "GET", theUrl, true)
+    #xmlHttp.onreadystatechange = handler
+    xmlHttp.send()
+    console.log(xmlHttp.responseText)
+   
+   connect = (path, params, method) =>
+      method = method || "post" #Set method to post by default, if not specified.
+
+      #The rest of this code assumes you are not using a library.
+      #It can be made less wordy if you use one.
+      form = document.createElement("form");
+      form.setAttribute("method", method);
+      form.setAttribute("action", path);
+
+      for key in params 
+        if(params.hasOwnProperty(key)) 
+            hiddenField = document.createElement("input");
+            hiddenField.setAttribute("type", "hidden");
+            hiddenField.setAttribute("name", key);
+            hiddenField.setAttribute("value", params[key]);
+            form.appendChild(hiddenField);
+        
+      
+
+      #document.body.appendChild(form);
+      form.submit();
+   
    
    ccMouseWheel = (event) =>
    
@@ -78,16 +110,11 @@ class window.rank_experiment
       e.wheelDelta/109) || # use the 1D wheel property
       e.detail*-10 || # Firefox DOMMouseScroll event
       0# property not defined
-      zoom = 0
-      
-      if (deltaY > 0) 
-        zoom = 1
-      if (deltaY < 0) 
-        zoom = -1
+
       ###  
       Most browsers generate one event with delta 120 per mousewheel click.
       On Macs, however, the mousewheels seem to be velocity-sensitive and
-     the delta values are often larger multiples of 120, at
+      the delta values are often larger multiples of 120, at
       least with the Apple Mouse. Use browser-testing to defeat this.
       ###
       if (@isMacWebKit) 
@@ -112,7 +139,7 @@ class window.rank_experiment
   
       zoomLevel = Math.pow(1+@zoom_scale,deltaY)
       #use the coordinates of the targetCircle as zoom focus only for zoom level 1
-      if @zoom_level == 1
+      if @zoom_level == 0
         @rememberTargetCircle.x = @targetCircle.cx.baseVal.value
         @rememberTargetCircle.y = @targetCircle.cy.baseVal.value       
       if zoomLevel > 1
@@ -135,10 +162,27 @@ class window.rank_experiment
       s = "matrix("+ smatrix.a + "," +smatrix.b + "," +smatrix.c + "," + smatrix.d + "," +smatrix.e+ "," +smatrix.f+")"
       
       @compositeG.setAttribute("transform",s)
-      tm2 = @compositeG.getScreenCTM()
+      #tm2 = @compositeG.getScreenCTM()
       
       @buttonNext.disabled=false
       return false  
+   
+   resetZoom = () =>
+      needed_zoom = 0
+      exponent = 120/109
+      needed_zoom = Math.pow(1+@zoom_scale,-exponent*@zoom_level) 
+      tm = @compositeG.getScreenCTM(); tmparent = @circleCanvas.getScreenCTM()
+      tmscaled = tm.scale(needed_zoom)
+      circleParent = @rememberTargetCircle.matrixTransform(tm) #circleParent = tm * circle_xy
+      circleScaled = circleParent.matrixTransform(tmscaled.inverse()) #circleParent = tmscaled * circleScaled
+      translation_x = circleScaled.x-@rememberTargetCircle.x;  translation_y = circleScaled.y-@rememberTargetCircle.y 
+      tmscaledtranslated = tmscaled.translate(translation_x,translation_y)
+      smatrix = tmparent.inverse().multiply(tmscaledtranslated)
+      #tm*s=tmscaled => s = tm^-1 * tmscaled
+      s = "matrix("+ smatrix.a + "," +smatrix.b + "," +smatrix.c + "," + smatrix.d + "," +smatrix.e+ "," +smatrix.f+")"  
+      @compositeG.setAttribute("transform",s)
+      @zoom_level = 0
+      #tm2 = @compositeG.getScreenCTM()
    
    ccMouseClick = (e) =>
       e = e || window.event
@@ -208,18 +252,26 @@ class window.rank_experiment
           @buttonNext.disabled=false
           @gameMode = true
       
+        resetZoom()
+        
       else
-        @circleCanvasDiv.attributes[1].nodeValue = "height:100%;width:100%;float:left;"
-        #@instructionsDiv.attributes[1].nodeValue = "height:100%;width:0%;float:left;"
+        resetZoom()
         @instructionsDiv.parentNode.removeChild(@instructionsDiv)            
-        @instructionsText.textContent = ""
-        @compositeG.attributes[1].nodeValue = "translate("+ 0.5*@windowWidth + ","+0.5*@windowHeight+") scale(1,-1)"
+        styleIndex = 1
+        #in Firefox the style information is the 0th attribute of the element
+        #in Chrome it is the 1st. That's why we calculate the proper index'
+        if @isFirefox 
+          styleIndex = 0
+        @gameTextDiv.attributes[styleIndex].nodeValue = "height:100%;width:20%;float:left;"
         @buttonNext.parentNode.removeChild(@buttonNext)
         @buttonPrevious.parentNode.removeChild(@buttonPrevious)
+        
+        
         
     
    prev = () =>  
       @flip = 0
+      @gameMode = false
       @buttonPrevious.disabled=false  
       @buttonNext.innerHTML = "Next"
       @instructionIndex--
@@ -232,8 +284,7 @@ class window.rank_experiment
 
       @instructionsText.textContent = @instructionVector[@instructionIndex]
       
-      
-      
+      resetZoom()      
       if @instructionIndex != 0
         @buttonNext.disabled=true
       
@@ -290,7 +341,10 @@ class window.rank_experiment
       @buttonPrevious.disabled=true
       
       initInstructions()
-    
+      params = new Array()
+      params[1] = 1 # 1 - instruction phase
+      #connect("http://192.168.1.52:8080/",params, "GET")
+      announceME("http://localhost:8080/")
     
    init()
 

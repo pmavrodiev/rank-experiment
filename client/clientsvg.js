@@ -11,6 +11,8 @@
       this.instructionsText = document.getElementById("instructions");
       this.circleCanvasDiv = document.getElementById("circleCanvasDiv");
       this.instructionsDiv = document.getElementById("instructionsDiv");
+      this.gameTextDiv = document.getElementById("gameTextDiv");
+      this.gameText = document.getElementById("gameText");
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
@@ -22,11 +24,11 @@
       this.instructionVector = new Array();
       this.instructionIndex = 0;
       this.zoom_scale = 0.2;
-      this.zoom_level = 1;
+      this.zoom_level = 0;
       this.previous_angle = Math.PI / 2;
       this.timedHover;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
-      this.isFirefox = navigator.userAgent.indexOf("Gecko") !== -1;
+      this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.flip = 0;
       this.gameMode = false;
       if (this.isFirefox) {
@@ -37,7 +39,7 @@
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, next, prev, restartGuessingTask,
+      var addListeners, announceME, ccMouseClick, ccMouseMove, ccMouseWheel, connect, getCursorPosition, init, initInstructions, next, prev, resetZoom, restartGuessingTask,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -48,22 +50,41 @@
         pt2 = pt.matrixTransform(transformation_matrix.inverse());
         return pt2;
       };
+      announceME = function(theUrl) {
+        var xmlHttp;
+        xmlHttp = null;
+        xmlHttp = new XMLHttpRequest();
+        xmlHttp.open("GET", theUrl, true);
+        xmlHttp.send();
+        return console.log(xmlHttp.responseText);
+      };
+      connect = function(path, params, method) {
+        var form, hiddenField, key, _i, _len;
+        method = method || "post";
+        form = document.createElement("form");
+        form.setAttribute("method", method);
+        form.setAttribute("action", path);
+        for (_i = 0, _len = params.length; _i < _len; _i++) {
+          key = params[_i];
+          if (params.hasOwnProperty(key)) {
+            hiddenField = document.createElement("input");
+            hiddenField.setAttribute("type", "hidden");
+            hiddenField.setAttribute("name", key);
+            hiddenField.setAttribute("value", params[key]);
+            form.appendChild(hiddenField);
+          }
+        }
+        return form.submit();
+      };
       ccMouseWheel = function(event) {
-        var circleParent, circleScaled, deltaX, deltaY, e, s, smatrix, tm, tm2, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y, zoom, zoomLevel;
+        var circleParent, circleScaled, deltaX, deltaY, e, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y, zoomLevel;
         e = event || window.event;
         deltaX = e.deltaX * -30 || e.wheelDeltaX / 40 || 0;
         deltaY = e.deltaY * -30 || e.wheelDeltaY / 109 || (e.wheelDeltaY === void 0 && e.wheelDelta / 109) || e.detail * -10 || 0;
-        zoom = 0;
-        if (deltaY > 0) {
-          zoom = 1;
-        }
-        if (deltaY < 0) {
-          zoom = -1;
-        }
         /*  
         Most browsers generate one event with delta 120 per mousewheel click.
         On Macs, however, the mousewheels seem to be velocity-sensitive and
-             the delta values are often larger multiples of 120, at
+        the delta values are often larger multiples of 120, at
         least with the Apple Mouse. Use browser-testing to defeat this.
         */
 
@@ -86,7 +107,7 @@
         e.cancelBubble = true;
         e.returnValue = false;
         zoomLevel = Math.pow(1 + _this.zoom_scale, deltaY);
-        if (_this.zoom_level === 1) {
+        if (_this.zoom_level === 0) {
           _this.rememberTargetCircle.x = _this.targetCircle.cx.baseVal.value;
           _this.rememberTargetCircle.y = _this.targetCircle.cy.baseVal.value;
         }
@@ -106,9 +127,26 @@
         smatrix = tmparent.inverse().multiply(tmscaledtranslated);
         s = "matrix(" + smatrix.a + "," + smatrix.b + "," + smatrix.c + "," + smatrix.d + "," + smatrix.e + "," + smatrix.f + ")";
         _this.compositeG.setAttribute("transform", s);
-        tm2 = _this.compositeG.getScreenCTM();
         _this.buttonNext.disabled = false;
         return false;
+      };
+      resetZoom = function() {
+        var circleParent, circleScaled, exponent, needed_zoom, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y;
+        needed_zoom = 0;
+        exponent = 120 / 109;
+        needed_zoom = Math.pow(1 + _this.zoom_scale, -exponent * _this.zoom_level);
+        tm = _this.compositeG.getScreenCTM();
+        tmparent = _this.circleCanvas.getScreenCTM();
+        tmscaled = tm.scale(needed_zoom);
+        circleParent = _this.rememberTargetCircle.matrixTransform(tm);
+        circleScaled = circleParent.matrixTransform(tmscaled.inverse());
+        translation_x = circleScaled.x - _this.rememberTargetCircle.x;
+        translation_y = circleScaled.y - _this.rememberTargetCircle.y;
+        tmscaledtranslated = tmscaled.translate(translation_x, translation_y);
+        smatrix = tmparent.inverse().multiply(tmscaledtranslated);
+        s = "matrix(" + smatrix.a + "," + smatrix.b + "," + smatrix.c + "," + smatrix.d + "," + smatrix.e + "," + smatrix.f + ")";
+        _this.compositeG.setAttribute("transform", s);
+        return _this.zoom_level = 0;
       };
       ccMouseClick = function(e) {
         var animatedElement, coord, radius;
@@ -145,6 +183,7 @@
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
       next = function() {
+        var styleIndex;
         if (!_this.gameMode) {
           _this.instructionIndex++;
           if (_this.instructionIndex === 1) {
@@ -165,19 +204,24 @@
             _this.rankText.textContent = "Your Rank: 1 (25)";
             _this.buttonNext.innerHTML = "Start";
             _this.buttonNext.disabled = false;
-            return _this.gameMode = true;
+            _this.gameMode = true;
           }
+          return resetZoom();
         } else {
-          _this.circleCanvasDiv.attributes[1].nodeValue = "height:100%;width:100%;float:left;";
+          resetZoom();
           _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
-          _this.instructionsText.textContent = "";
-          _this.compositeG.attributes[1].nodeValue = "translate(" + 0.5 * _this.windowWidth + "," + 0.5 * _this.windowHeight + ") scale(1,-1)";
+          styleIndex = 1;
+          if (_this.isFirefox) {
+            styleIndex = 0;
+          }
+          _this.gameTextDiv.attributes[styleIndex].nodeValue = "height:100%;width:20%;float:left;";
           _this.buttonNext.parentNode.removeChild(_this.buttonNext);
           return _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
         }
       };
       prev = function() {
         _this.flip = 0;
+        _this.gameMode = false;
         _this.buttonPrevious.disabled = false;
         _this.buttonNext.innerHTML = "Next";
         _this.instructionIndex--;
@@ -189,6 +233,7 @@
           _this.buttonPrevious.disabled = false;
         }
         _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
+        resetZoom();
         if (_this.instructionIndex !== 0) {
           return _this.buttonNext.disabled = true;
         }
@@ -210,10 +255,14 @@
         }
       };
       init = function() {
+        var params;
         _this.buttonNext.onclick = next;
         _this.buttonPrevious.onclick = prev;
         _this.buttonPrevious.disabled = true;
-        return initInstructions();
+        initInstructions();
+        params = new Array();
+        params[1] = 1;
+        return announceME("http://localhost:8080/");
       };
       return init();
     };
