@@ -31,7 +31,7 @@ public class MyHandlers {
 
 		public void handle(String target,Request baseRequest,HttpServletRequest request,
 				HttpServletResponse response) throws IOException, ServletException {
-
+			
 			if (baseRequest.getConnection().getConnector().getPort() == myport) {
 				response.setHeader("Access-Control-Allow-Origin", "*");
 				response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
