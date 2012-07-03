@@ -29,6 +29,7 @@
       this.timedHover;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
+      this.registered = false;
       this.flip = 0;
       this.gameMode = false;
       if (this.isFirefox) {
@@ -54,9 +55,15 @@
         var xmlHttp;
         xmlHttp = null;
         xmlHttp = new XMLHttpRequest();
-        xmlHttp.open("GET", theUrl, true);
-        xmlHttp.send();
-        return console.log(xmlHttp.responseText);
+        xmlHttp.open("GET", theUrl, false);
+        try {
+          xmlHttp.send();
+        } catch (networkError) {
+          _this.registered = false;
+          alert("Cannot connect to server");
+        }
+        console.log(xmlHttp.responseText);
+        return xmlHttp.responseText;
       };
       connect = function(path, params, method) {
         var form, hiddenField, key, _i, _len;
@@ -255,14 +262,17 @@
         }
       };
       init = function() {
-        var params;
+        var params, status;
         _this.buttonNext.onclick = next;
         _this.buttonPrevious.onclick = prev;
         _this.buttonPrevious.disabled = true;
         initInstructions();
         params = new Array();
         params[1] = 1;
-        return announceME("http://localhost:8080/");
+        status = announceME("http://129.132.133.54:8080/");
+        if (status.indexOf("OK") !== -1) {
+          return _this.registered = true;
+        }
       };
       return init();
     };

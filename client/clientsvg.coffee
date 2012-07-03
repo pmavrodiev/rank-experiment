@@ -35,6 +35,9 @@ class window.rank_experiment
                 
     @isFirefox = navigator.userAgent.indexOf("Firefox") != -1
     
+    #network stuff
+    @registered = false
+    
     #misc
     @flip = 0
     @gameMode = false
@@ -63,10 +66,16 @@ class window.rank_experiment
    announceME = (theUrl) =>
     xmlHttp = null;
     xmlHttp = new XMLHttpRequest()
-    xmlHttp.open( "GET", theUrl, true)
+    xmlHttp.open( "GET", theUrl, false)
     #xmlHttp.onreadystatechange = handler
-    xmlHttp.send()
+    try 
+      xmlHttp.send()
+    catch networkError
+      @registered = false     
+      alert("Cannot connect to server")
+       
     console.log(xmlHttp.responseText)
+    return xmlHttp.responseText
    
    connect = (path, params, method) =>
       method = method || "post" #Set method to post by default, if not specified.
@@ -344,7 +353,10 @@ class window.rank_experiment
       params = new Array()
       params[1] = 1 # 1 - instruction phase
       #connect("http://192.168.1.52:8080/",params, "GET")
-      announceME("http://localhost:8080/")
+      
+      status = announceME("http://129.132.133.54:8080/")
+      if (status.indexOf("OK") != -1)
+        @registered=true
     
    init()
 

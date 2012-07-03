@@ -8,29 +8,28 @@ import javax.swing.JFrame;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 
-import pm.JettyServer;
+import pm.MyServer;
 import pm.ServerStartStopActionListener;
 
 
 public class ServerRunner extends JFrame{
-	private static final long serialVersionUID = 8261022096695034L;
 
+	private static final long serialVersionUID = 1L;
 	private JButton btnStartStop;
 
-	public ServerRunner(final JettyServer jettyServer) {
+	public ServerRunner(final MyServer myServer) {
 		super("Start/Stop Server");
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		btnStartStop = new JButton("Start");
-		btnStartStop.addActionListener
-		(new ServerStartStopActionListener(jettyServer));
+		btnStartStop.addActionListener(new ServerStartStopActionListener(myServer));
 		add(btnStartStop,BorderLayout.CENTER);
 		setSize(300,300);
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
 			public void run() {
-				if(jettyServer.isStarted()) {
+				if(myServer.isStarted()) {
 					try {
-						jettyServer.stop();
+						myServer.stop();
 					} catch (Exception exception) {
 						exception.printStackTrace();
 					}
@@ -40,18 +39,12 @@ public class ServerRunner extends JFrame{
 		setVisible(true);
 	}
 	
-	public static void main(String[] args) {
-		ContextHandlerCollection contexts = new ContextHandlerCollection();
-		
-		contexts.setHandlers(new Handler[] 
-			{ new AppContextBuilder().buildWebAppContext()});
-		
-		final JettyServer jettyServer = new JettyServer();
-		jettyServer.setHandler(contexts);
+	public static void main(String[] args) throws Exception {		
+		final MyServer myServer = new MyServer();		
 		Runnable runner = new Runnable() {
 			@Override
 			public void run() {
-				new ServerRunner(jettyServer);
+				new ServerRunner(myServer);
 			}
 		};
 		EventQueue.invokeLater(runner);

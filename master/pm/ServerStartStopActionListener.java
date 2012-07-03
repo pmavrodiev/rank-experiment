@@ -6,43 +6,46 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
+import javax.swing.table.DefaultTableModel;
 
-import pm.JettyServer;
-
+import pm.MyServer;
 
 public class ServerStartStopActionListener implements ActionListener{
-	private final JettyServer jettyServer;
+	private final MyServer myServer;
 
-	public ServerStartStopActionListener(JettyServer jettyServer) {
-		this.jettyServer = jettyServer;
+	public ServerStartStopActionListener(MyServer myServer) {
+		this.myServer = myServer;
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent actionEvent) {
 		JButton btnStartStop =  (JButton) actionEvent.getSource();
-		if(jettyServer.isStarted()){
+		if(myServer.isStarted()){
 			btnStartStop.setText("Stopping...");
 			btnStartStop.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 			try {
-				jettyServer.stop();
+				myServer.stop();
+				DefaultTableModel model = (DefaultTableModel) GUI.getLogTable().getModel();
+				model.getDataVector().removeAllElements();
+				model.fireTableDataChanged();
+				GUI.clients.clear();
+				
 			} catch (Exception exception) {
 				exception.printStackTrace();
 			}
 			btnStartStop.setText("Start");
-			btnStartStop.setCursor
-			(new Cursor(Cursor.DEFAULT_CURSOR));
+			btnStartStop.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		}
-		else if(jettyServer.isStopped()){
+		else if(myServer.isStopped()){
 			btnStartStop.setText("Starting...");
 			btnStartStop.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 			try {
-				jettyServer.start();
+				myServer.start();
 			} catch (Exception exception) {
 				exception.printStackTrace();
 			}
 			btnStartStop.setText("Stop");
-			btnStartStop.setCursor
-			(new Cursor(Cursor.DEFAULT_CURSOR));
+			btnStartStop.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		}
 	}
 }

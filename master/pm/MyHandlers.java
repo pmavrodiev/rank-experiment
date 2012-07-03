@@ -1,6 +1,10 @@
 package pm;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -17,14 +21,18 @@ public class MyHandlers {
 				HttpServletResponse response) throws IOException, ServletException {
 
 			if (baseRequest.getConnection().getConnector().getPort() == myport) {
-				System.out.println("Client connected");
-				//response.setContentType("text/html;charset=utf-8");
-			
+				response.setHeader("Access-Control-Allow-Origin", "*");
+				response.setContentType("text/html;charset=utf-8");			
 				response.setStatus(HttpServletResponse.SC_OK);
 				baseRequest.setHandled(true);
 				String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
-				response.getWriter().println("<h1>You are a simple client from "+ip+"</h1>");
-				
+				System.out.println("Client connected from "+ip);
+				response.getWriter().println("OK");
+				/*add the client to the known clients*/
+				DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+				ClientLog newClient = new ClientLog(ip,dateFormat.format(new Date()));				
+				GUI.clients.add(newClient);
+				GUI.updateGUITable(newClient,GUI.REGISTRATION);  //new client
 			}
 		}
 	}
@@ -34,16 +42,19 @@ public class MyHandlers {
 
 		public void handle(String target,Request baseRequest,HttpServletRequest request,
 				HttpServletResponse response) throws IOException, ServletException {
-
+			
 			if (baseRequest.getConnection().getConnector().getPort() == myport) {
+				System.out.println("I am boss handler");
+				
+				response.setHeader("Access-Control-Allow-Origin", "*");				
 				response.setContentType("text/html;charset=utf-8");
 				response.setStatus(HttpServletResponse.SC_OK);
 				baseRequest.setHandled(true);
 				String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
+				System.out.println("Boss connected from "+ip);
 				response.getWriter().println("<h1>You are a boss from "+ip+"</h1>");
 			}
 		}
 	}
-
 
 }

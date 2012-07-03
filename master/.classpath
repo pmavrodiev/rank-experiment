@@ -2,7 +2,12 @@
 <classpath>
 	<classpathentry kind="src" path=""/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/jetty-all-8.1.4.v20120524.jar"/>
+	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/jetty-all-8.1.4.v20120524.jar" sourcepath="/home/pmavrodiev/Programs/rank-experiment/master/lib/jetty-all-8.1.4.v20120524-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/home/pmavrodiev/Programs/rank-experiment/master/lib/jetty-all-8.1.4.v20120524-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/javax.servlet-api-3.0.1.jar"/>
+	<classpathentry kind="con" path="org.dyno.visual.swing.VS_LIBRARY/layoutext"/>
 	<classpathentry kind="output" path=""/>
 </classpath>
