@@ -15,12 +15,12 @@ public class MyServer {
 	public MyServer() throws Exception{
 		server = new Server();
 		MyConnectors.initConnectors();
-		server.setConnectors(new Connector[]{ MyConnectors.client, MyConnectors.admin });        
+		server.setConnectors(new Connector[]{ MyConnectors.client/*, MyConnectors.admin*/ });        
 
 		HandlerList handlers = new HandlerList();
 
 		//WebAppContext webContext = new pm.AppContextBuilder().buildWebAppContext();
-		handlers.setHandlers(new Handler[] { new MyHandlers.CLIENT(), new MyHandlers.BOSS()});
+		handlers.setHandlers(new Handler[] { new MyHandlers.CLIENT()/*, new MyHandlers.BOSS()*/});
 
 		//webContext.setServer(server);   	
 		server.setHandler(handlers);        

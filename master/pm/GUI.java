@@ -30,11 +30,13 @@ public class GUI extends JFrame {
 	public static final int ROUND_BEGIN=1;
 	public static final int ROUND_ESTIMATE=2;
 	public static final int ROUND_END=3;
+	public static boolean[] gameRoundsStates;
 	
 	public static Vector<ClientLog> clients;;
 	/*swing stuff*/
 	private static JPanel jPanel0;
 	private static JButton startstop;
+	private static JButton nextRound;
 	private static JScrollPane scrollpane;
 	private static JTable logtable;
 	
@@ -44,6 +46,10 @@ public class GUI extends JFrame {
 
 	public GUI(final MyServer myServer) {
 		this.myServer = myServer;
+		/*game related stuff*/
+		gameRoundsStates = new boolean[gameRounds];
+		for (int i=0; i<gameRounds;i++) gameRoundsStates[i]=false;
+		clients = new Vector<ClientLog>();
 		initComponents();
 
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -59,7 +65,7 @@ public class GUI extends JFrame {
 			}
 		},"Stop Jetty Hook"));		
 		
-		clients = new Vector<ClientLog>();
+		
 	}
 
 	private void initComponents() {
@@ -89,13 +95,24 @@ public class GUI extends JFrame {
 		}
 		return startstop;
 	}
+	
+	private JButton getNextRoundButton() {
+		if (nextRound == null) {
+			nextRound = new JButton("Next Round");
+			//startstop.addActionListener(new ServerStartStopActionListener(myServer));
+		}
+		return nextRound;
+	}
 
 	private JPanel getJPanel0() {
 		if (jPanel0 == null) {
 			jPanel0 = new JPanel();
 			jPanel0.setLayout(new GridBagLayout());
 			GridBagConstraints c = new GridBagConstraints();
-			c.gridx = 0; c.gridy = 0;jPanel0.add(getStartStopButton(),c); 	
+			c.gridx = 0; c.gridy = 0; c.anchor = GridBagConstraints.NORTHWEST;
+			jPanel0.add(getStartStopButton(),c); 	
+			c.gridx = 1; c.gridy = 0;c.anchor = GridBagConstraints.NORTHEAST;
+			jPanel0.add(getNextRoundButton(),c); 
 		}
 		return jPanel0;
 	}

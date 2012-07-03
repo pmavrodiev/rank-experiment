@@ -55,9 +55,9 @@
         var xmlHttp;
         xmlHttp = null;
         xmlHttp = new XMLHttpRequest();
-        xmlHttp.open("GET", theUrl, false);
+        xmlHttp.open("POST", theUrl, false);
         try {
-          xmlHttp.send();
+          xmlHttp.send("announce");
         } catch (networkError) {
           _this.registered = false;
           alert("Cannot connect to server");
@@ -269,7 +269,7 @@
         initInstructions();
         params = new Array();
         params[1] = 1;
-        status = announceME("http://129.132.133.54:8080/");
+        status = announceME("http://192.168.1.161:8080/");
         if (status.indexOf("OK") !== -1) {
           return _this.registered = true;
         }

@@ -66,14 +66,14 @@ class window.rank_experiment
    announceME = (theUrl) =>
     xmlHttp = null;
     xmlHttp = new XMLHttpRequest()
-    xmlHttp.open( "GET", theUrl, false)
+    xmlHttp.open( "POST", theUrl, false)
     #xmlHttp.onreadystatechange = handler
     try 
-      xmlHttp.send()
+      xmlHttp.send("announce")
     catch networkError
-      @registered = false     
-      alert("Cannot connect to server")
-       
+      @registered = false  
+      alert("Cannot connect to server")       
+    
     console.log(xmlHttp.responseText)
     return xmlHttp.responseText
    
@@ -354,7 +354,7 @@ class window.rank_experiment
       params[1] = 1 # 1 - instruction phase
       #connect("http://192.168.1.52:8080/",params, "GET")
       
-      status = announceME("http://129.132.133.54:8080/")
+      status = announceME("http://192.168.1.161:8080/")
       if (status.indexOf("OK") != -1)
         @registered=true
     
