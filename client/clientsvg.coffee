@@ -22,9 +22,11 @@ class window.rank_experiment
     #@angleText=document.getElementById("angleText")
     #@msgText=document.getElementById("msgText")
     
-    #instructions
+    #game-related stuff
     @instructionVector = new Array()
     @instructionIndex = 0
+    @gameMode = false
+    @currentLevel = -1
     
     @zoom_scale = 0.2
     @zoom_level = 0 #the nestedness of the zoom
@@ -36,19 +38,42 @@ class window.rank_experiment
     @isFirefox = navigator.userAgent.indexOf("Firefox") != -1
     
     #network stuff
+    @serverURL = "http://129.132.133.54:8080/"
     @registered = false
+   
     
     #misc
     @flip = 0
-    @gameMode = false
     
     if (@isFirefox)
       window.load = @windowListen()
     else
       window.addEventListener('onload',@windowListen(),false)     
     
-
-          
+  ### HEADERS
+  client:
+  POST / HTTP/1.1
+  Host: 129.132.133.54:8080
+  Connection: keep-alive
+  Content-Length: 8
+  Origin: http://localhost:3100
+  User-Agent: Mozilla/5.0 (X11; Linux i686) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.47 Safari/536.11
+  Content-Type: application/xml
+  Accept: '*'/'*' remove the '
+  Referer: http://localhost:3100/
+  Accept-Encoding: gzip,deflate,sdch
+  Accept-Language: en-US,en;q=0.8,bg;q=0.6
+  Accept-Charset: windows-1251,utf-8;q=0.7,*;q=0.3
+  
+  server:
+  HTTP/1.1 200 OK
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: Content-Type
+  Content-Type: text/html;charset=UTF-8
+  Content-Length: 0
+  Server: Jetty(8.1.4.v20120524)
+  ###        
   windowListen: () ->
     # the objects in the SVG code
   
@@ -61,43 +86,47 @@ class window.rank_experiment
       transformation_matrix = @compositeG.getScreenCTM()
       pt2 = pt.matrixTransform(transformation_matrix.inverse())  
       return pt2
-      
-      
-   announceME = (theUrl) =>
-    xmlHttp = null;
-    xmlHttp = new XMLHttpRequest()
-    xmlHttp.open( "POST", theUrl, false)
-    #xmlHttp.onreadystatechange = handler
-    try 
-      xmlHttp.send("announce")
-    catch networkError
-      @registered = false  
-      alert("Cannot connect to server")       
-    
-    console.log(xmlHttp.responseText)
-    return xmlHttp.responseText
    
-   connect = (path, params, method) =>
-      method = method || "post" #Set method to post by default, if not specified.
-
-      #The rest of this code assumes you are not using a library.
-      #It can be made less wordy if you use one.
-      form = document.createElement("form");
-      form.setAttribute("method", method);
-      form.setAttribute("action", path);
-
-      for key in params 
-        if(params.hasOwnProperty(key)) 
-            hiddenField = document.createElement("input");
-            hiddenField.setAttribute("type", "hidden");
-            hiddenField.setAttribute("name", key);
-            hiddenField.setAttribute("value", params[key]);
-            form.appendChild(hiddenField);
+  
+          
+   send = (theURL, _data) =>
+      serverResponse = null
+      processServerResponse = (response, status) =>
+        if status == "error"
+          alert("Cannot connect to server")
+        else if status != "success"
+          alert("Network problems "+status)
+        else #success
+          if response.responseText.indexOf("announced") != -1
+            @registered = true
+        
+        serverResponse = response.responseText
+                  
+      $.ajax(
+         url: theURL,
+         accepts: "*/*"
+         contentType: "text/html",
+         crossDomain: true,
+         context: @,
+         type: "POST",
+         data: _data,
+         async: false
+         complete:  processServerResponse,
+      )      
+      serverResponse
         
       
-
-      #document.body.appendChild(form);
-      form.submit();
+    
+   getRankCurLevel = () =>
+      #send a POST request asking for rank info about the current level
+      srvResponse = send(@serverURL,"Rank "+@currentLevel)
+      console.log("Server said " + srvResponse)
+      expectedResponse = "OK " + @currentLevel
+      if srvResponse != expectedResponse
+        setTimeout(3000)
+        getRankCurLevel()
+        
+      console.log("HELL YEAH")      
    
    
    ccMouseWheel = (event) =>
@@ -237,7 +266,8 @@ class window.rank_experiment
    restartGuessingTask = () =>    
       @circleCanvas.addEventListener('click', ccMouseClick, false)
 
-  
+      
+        
    next = () =>
       if !@gameMode 
         @instructionIndex++
@@ -274,8 +304,8 @@ class window.rank_experiment
         @gameTextDiv.attributes[styleIndex].nodeValue = "height:100%;width:20%;float:left;"
         @buttonNext.parentNode.removeChild(@buttonNext)
         @buttonPrevious.parentNode.removeChild(@buttonPrevious)
-        
-        
+        @currentLevel = 0
+        getRankCurLevel()
         
     
    prev = () =>  
@@ -350,13 +380,11 @@ class window.rank_experiment
       @buttonPrevious.disabled=true
       
       initInstructions()
-      params = new Array()
-      params[1] = 1 # 1 - instruction phase
       #connect("http://192.168.1.52:8080/",params, "GET")
+      console.log(send(@serverURL,"announce"))
+           
       
-      status = announceME("http://192.168.1.161:8080/")
-      if (status.indexOf("OK") != -1)
-        @registered=true
+   
     
    init()
 

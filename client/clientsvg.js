@@ -23,15 +23,17 @@
       this.rankText = document.getElementById("rankText");
       this.instructionVector = new Array();
       this.instructionIndex = 0;
+      this.gameMode = false;
+      this.currentLevel = -1;
       this.zoom_scale = 0.2;
       this.zoom_level = 0;
       this.previous_angle = Math.PI / 2;
       this.timedHover;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
+      this.serverURL = "http://129.132.133.54:8080/";
       this.registered = false;
       this.flip = 0;
-      this.gameMode = false;
       if (this.isFirefox) {
         window.load = this.windowListen();
       } else {
@@ -39,8 +41,34 @@
       }
     }
 
+    /* HEADERS
+    client:
+    POST / HTTP/1.1
+    Host: 129.132.133.54:8080
+    Connection: keep-alive
+    Content-Length: 8
+    Origin: http://localhost:3100
+    User-Agent: Mozilla/5.0 (X11; Linux i686) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.47 Safari/536.11
+    Content-Type: application/xml
+    Accept: '*'/'*' remove the '
+    Referer: http://localhost:3100/
+    Accept-Encoding: gzip,deflate,sdch
+    Accept-Language: en-US,en;q=0.8,bg;q=0.6
+    Accept-Charset: windows-1251,utf-8;q=0.7,*;q=0.3
+    
+    server:
+    HTTP/1.1 200 OK
+    Access-Control-Allow-Origin: *
+    Access-Control-Allow-Methods: GET, POST, OPTIONS
+    Access-Control-Allow-Headers: Content-Type
+    Content-Type: text/html;charset=UTF-8
+    Content-Length: 0
+    Server: Jetty(8.1.4.v20120524)
+    */
+
+
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, announceME, ccMouseClick, ccMouseMove, ccMouseWheel, connect, getCursorPosition, init, initInstructions, next, prev, resetZoom, restartGuessingTask,
+      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, getRankCurLevel, init, initInstructions, next, prev, resetZoom, restartGuessingTask, send,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -51,37 +79,44 @@
         pt2 = pt.matrixTransform(transformation_matrix.inverse());
         return pt2;
       };
-      announceME = function(theUrl) {
-        var xmlHttp;
-        xmlHttp = null;
-        xmlHttp = new XMLHttpRequest();
-        xmlHttp.open("POST", theUrl, false);
-        try {
-          xmlHttp.send("announce");
-        } catch (networkError) {
-          _this.registered = false;
-          alert("Cannot connect to server");
-        }
-        console.log(xmlHttp.responseText);
-        return xmlHttp.responseText;
-      };
-      connect = function(path, params, method) {
-        var form, hiddenField, key, _i, _len;
-        method = method || "post";
-        form = document.createElement("form");
-        form.setAttribute("method", method);
-        form.setAttribute("action", path);
-        for (_i = 0, _len = params.length; _i < _len; _i++) {
-          key = params[_i];
-          if (params.hasOwnProperty(key)) {
-            hiddenField = document.createElement("input");
-            hiddenField.setAttribute("type", "hidden");
-            hiddenField.setAttribute("name", key);
-            hiddenField.setAttribute("value", params[key]);
-            form.appendChild(hiddenField);
+      send = function(theURL, _data) {
+        var processServerResponse, serverResponse;
+        serverResponse = null;
+        processServerResponse = function(response, status) {
+          if (status === "error") {
+            alert("Cannot connect to server");
+          } else if (status !== "success") {
+            alert("Network problems " + status);
+          } else {
+            if (response.responseText.indexOf("announced") !== -1) {
+              _this.registered = true;
+            }
           }
+          return serverResponse = response.responseText;
+        };
+        $.ajax({
+          url: theURL,
+          accepts: "*/*",
+          contentType: "text/html",
+          crossDomain: true,
+          context: _this,
+          type: "POST",
+          data: _data,
+          async: false,
+          complete: processServerResponse
+        });
+        return serverResponse;
+      };
+      getRankCurLevel = function() {
+        var expectedResponse, srvResponse;
+        srvResponse = send(_this.serverURL, "Rank " + _this.currentLevel);
+        console.log("Server said " + srvResponse);
+        expectedResponse = "OK " + _this.currentLevel;
+        if (srvResponse !== expectedResponse) {
+          setTimeout(3000);
+          getRankCurLevel();
         }
-        return form.submit();
+        return console.log("HELL YEAH");
       };
       ccMouseWheel = function(event) {
         var circleParent, circleScaled, deltaX, deltaY, e, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y, zoomLevel;
@@ -223,7 +258,9 @@
           }
           _this.gameTextDiv.attributes[styleIndex].nodeValue = "height:100%;width:20%;float:left;";
           _this.buttonNext.parentNode.removeChild(_this.buttonNext);
-          return _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
+          _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
+          _this.currentLevel = 0;
+          return getRankCurLevel();
         }
       };
       prev = function() {
@@ -262,17 +299,11 @@
         }
       };
       init = function() {
-        var params, status;
         _this.buttonNext.onclick = next;
         _this.buttonPrevious.onclick = prev;
         _this.buttonPrevious.disabled = true;
         initInstructions();
-        params = new Array();
-        params[1] = 1;
-        status = announceME("http://192.168.1.161:8080/");
-        if (status.indexOf("OK") !== -1) {
-          return _this.registered = true;
-        }
+        return console.log(send(_this.serverURL, "announce"));
       };
       return init();
     };

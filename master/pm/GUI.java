@@ -4,7 +4,8 @@ package pm;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.util.Vector;
+import java.util.HashMap;
+
 
 
 import javax.swing.JButton;
@@ -26,20 +27,21 @@ public class GUI extends JFrame {
 	private static final long serialVersionUID = 1L;
 	/*game related stuff*/
 	public static final int gameRounds = 10;
-	public static final int REGISTRATION=0;	
-	public static final int ROUND_BEGIN=1;
-	public static final int ROUND_ESTIMATE=2;
-	public static final int ROUND_END=3;
-	public static boolean[] gameRoundsStates;
-	
-	public static Vector<ClientLog> clients;;
+	public static final int ANNOUNCE=0;	
+	public static final int RE_ANNOUNCE=1;	
+	public static final int ROUND_BEGIN=2;
+	public static final int ROUND_ESTIMATE=3;
+	public static final int ROUND_END=4;
+	public static boolean[] gameRoundsStates;	
+	public static HashMap<String,ClientLog> clients;
 	/*swing stuff*/
 	private static JPanel jPanel0;
 	private static JButton startstop;
 	private static JButton nextRound;
 	private static JScrollPane scrollpane;
 	private static JTable logtable;
-	
+	/*misc stuff*/
+	private boolean DEBUG = true;
 
 	private static final String PREFERRED_LOOK_AND_FEEL = "javax.swing.plaf.metal.MetalLookAndFeel";
 	private MyServer myServer;
@@ -47,9 +49,10 @@ public class GUI extends JFrame {
 	public GUI(final MyServer myServer) {
 		this.myServer = myServer;
 		/*game related stuff*/
+		clients = new HashMap<String,ClientLog>();
 		gameRoundsStates = new boolean[gameRounds];
 		for (int i=0; i<gameRounds;i++) gameRoundsStates[i]=false;
-		clients = new Vector<ClientLog>();
+		//clients = new Map<String,ClientLog>();
 		initComponents();
 
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -64,7 +67,7 @@ public class GUI extends JFrame {
 				}
 			}
 		},"Stop Jetty Hook"));		
-		
+		/*init logging*/
 		
 	}
 
@@ -78,13 +81,10 @@ public class GUI extends JFrame {
 		c.anchor = GridBagConstraints.NORTHWEST;
 		//the panel
 		this.add(getJPanel0(),c);
-		System.out.println(getJPanel0().getBounds());
 		//the scroll pane
 		c.weightx = 1; c.weighty=1;
 		c.gridx = 0; c.gridy = 1;c.anchor = GridBagConstraints.NORTHWEST;
-		
 		this.add(getScrollPane(),c);
-		System.out.println(scrollpane.getBounds());
 
 	}
 
@@ -186,9 +186,16 @@ public class GUI extends JFrame {
 	}
 
 	public static void updateGUITable(ClientLog newClient,int state) {
-		if (state == REGISTRATION) {
-			DefaultTableModel model = (DefaultTableModel) getLogTable().getModel();
+		DefaultTableModel model = (DefaultTableModel) getLogTable().getModel();
+		if (state == ANNOUNCE) {
 			model.addRow(new Object[] {newClient.client_ip,newClient.reg_begin});
+		}
+		else if (state == RE_ANNOUNCE) {
+			/*The newClient parameter is not really new in this case. 
+			 *It is the existing client who is reannouncing himself*/
+			int rowIdx = newClient.id;
+			int colIdx = 1; //REG_BEGIN
+			model.setValueAt((Object) newClient.reg_begin, rowIdx, colIdx);
 		}
 		else if (state == ROUND_BEGIN) {
 	

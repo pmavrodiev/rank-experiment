@@ -25,19 +25,39 @@ public class ClientLog {
 		@SuppressWarnings("unused")
 		public String getRound_end() {return round_end;}
 	}	
-
+	public int id;
 	public String client_ip; //the IP of the connecting client
 	public String reg_begin;
 	public String reg_end;
 	public Vector<gameRound> gameRounds;
 	private int currentRound; //the current round where the client is
 
-	public ClientLog(String client_ip, String reg_begin) {
+	public ClientLog(String client_ip, String reg_begin,int id) {
+		this.id = id;
 		this.client_ip = client_ip;
 		this.reg_begin = reg_begin;
 		this.reg_end = null;
 		this.currentRound = 0;
 		gameRounds = new Vector<gameRound>(GUI.gameRounds);
 	}
+	
+	public ClientLog(String client_ip) {
+		this.id = -1;
+		this.client_ip = client_ip;
+		this.reg_begin = null;
+		this.reg_end = null;
+		this.currentRound = 0;
+		gameRounds = new Vector<gameRound>(GUI.gameRounds);
+	}	
+	/*@Override
+	 Note that we compare "this" to a String! 
+	 *That's because we are only interested in whether the IPs match*/
+	/*
+	public boolean equals(Object otherClient) {
+		if (!(otherClient instanceof String)) return false;
+		String otherClientIP = (String) otherClient;		
+		return this.client_ip.equals(otherClientIP);
+	}
+	*/
 
 }

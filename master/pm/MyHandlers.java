@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Enumeration;
+
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -18,6 +18,8 @@ public class MyHandlers {
 
 	public static class CLIENT extends AbstractHandler {
 		public static int myport = 8080;
+		public static DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+		
 		private String getPOSTpayLoad(HttpServletRequest request) throws IOException {
 			BufferedReader reader = request.getReader();
 			StringBuilder sb = new StringBuilder();
@@ -31,7 +33,7 @@ public class MyHandlers {
 
 		public void handle(String target,Request baseRequest,HttpServletRequest request,
 				HttpServletResponse response) throws IOException, ServletException {
-			
+
 			if (baseRequest.getConnection().getConnector().getPort() == myport) {
 				response.setHeader("Access-Control-Allow-Origin", "*");
 				response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -39,17 +41,31 @@ public class MyHandlers {
 				response.setContentType("text/html;charset=utf-8");			
 				response.setStatus(HttpServletResponse.SC_OK);
 				if (baseRequest.getMethod().equals("POST")) {
-					/*get the POST payload*/
+					/*Get the POST payload*/
 					String payload = getPOSTpayLoad(request);
 					if (payload.equals("announce\n")) {
 						String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();					
-						response.getWriter().println("OK");
-						System.out.println("Client announced from "+ip);
-						/*add the client to the known clients*/
-						DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-						ClientLog newClient = new ClientLog(ip,dateFormat.format(new Date()));				
-						GUI.clients.add(newClient);
-						GUI.updateGUITable(newClient,GUI.REGISTRATION);  //new client
+						/*Has the client already announced himself?
+						 *this is possible if a user starts the instruction phase,
+						 *then closes the web page and reloads it again. In this way,
+						 *no "ready" message will have been received by the server for
+						 *this particular user.*/
+						ClientLog alreadyAnnounced = GUI.clients.get(ip);						
+						if (alreadyAnnounced != null) {
+							Log.println("Client already announced. Announcement time updated.");
+							/*update announcement time*/							
+							alreadyAnnounced.reg_begin = dateFormat.format(new Date());
+							GUI.updateGUITable(alreadyAnnounced,GUI.RE_ANNOUNCE);
+							response.getWriter().println("announced");
+						}
+						else {
+							/*add the client to the known clients*/
+							Log.println("Client announced from "+ip);							
+							ClientLog newClient = new ClientLog(ip,dateFormat.format(new Date()),GUI.clients.size());	
+							GUI.clients.put(ip, newClient);
+							GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client
+							response.getWriter().println("announced");
+						}
 					}
 					else if (payload.equals("ready\n")) { //update RegEnd
 						//check gameRoundsStates
@@ -64,6 +80,7 @@ public class MyHandlers {
 						//estimate of 12.2348239 for round 1
 						//the time of receiving this is also the time for Round_X_END
 					}
+					else {response.getWriter().println("unknown_request");}
 				}
 				baseRequest.setHandled(true);			
 			}
@@ -77,14 +94,14 @@ public class MyHandlers {
 				HttpServletResponse response) throws IOException, ServletException {
 
 			if (baseRequest.getConnection().getConnector().getPort() == myport) {
-				System.out.println("I am boss handler");
+				Log.println("I am boss handler");
 
 				response.setHeader("Access-Control-Allow-Origin", "*");				
 				response.setContentType("text/html;charset=utf-8");
 				response.setStatus(HttpServletResponse.SC_OK);
 				baseRequest.setHandled(true);
 				String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
-				System.out.println("Boss connected from "+ip);
+				Log.println("Boss connected from "+ip);
 				response.getWriter().println("<h1>You are a boss from "+ip+"</h1>");
 			}
 		}
