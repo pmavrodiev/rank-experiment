@@ -9,5 +9,9 @@ public class Log {
 		if (DEBUG)
 			ps.println(what);
 	}
+	public static void print(Object what) {
+		if (DEBUG)
+			ps.print(what);
+	}
 	
 }

@@ -27,11 +27,10 @@ class window.rank_experiment
     @instructionIndex = 0
     @gameMode = false
     @currentLevel = -1
-    
+    @currentRank = ""
     @zoom_scale = 0.2
     @zoom_level = 0 #the nestedness of the zoom
     @previous_angle = Math.PI/2
-    @timedHover
     @isMacWebKit = navigator.userAgent.indexOf("Macintosh") != -1 &&
                 navigator.userAgent.indexOf("WebKit") != -1
                 
@@ -40,7 +39,7 @@ class window.rank_experiment
     #network stuff
     @serverURL = "http://129.132.133.54:8080/"
     @registered = false
-   
+     
     
     #misc
     @flip = 0
@@ -88,7 +87,7 @@ class window.rank_experiment
       return pt2
    
   
-          
+   #for now return the full server response to queryRound, but in principle can return just a flag          
    send = (theURL, _data) =>
       serverResponse = null
       processServerResponse = (response, status) =>
@@ -99,7 +98,10 @@ class window.rank_experiment
         else #success
           if response.responseText.indexOf("announced") != -1
             @registered = true
-        
+          else if response.responseText.indexOf("full") != -1
+            alert("Sorry, the game has already started")
+            @gameMode = false         
+                
         serverResponse = response.responseText
                   
       $.ajax(
@@ -117,16 +119,18 @@ class window.rank_experiment
         
       
     
-   getRankCurLevel = () =>
+   queryRound = (data) =>
       #send a POST request asking for rank info about the current level
-      srvResponse = send(@serverURL,"Rank "+@currentLevel)
+      srvResponse = send(@serverURL,"rank "+@currentLevel)
       console.log("Server said " + srvResponse)
-      expectedResponse = "OK " + @currentLevel
-      if srvResponse != expectedResponse
-        setTimeout(3000)
-        getRankCurLevel()
-        
-      console.log("HELL YEAH")      
+      if srvResponse.indexOf("urrank") != -1        
+        addListeners()
+        @currentRank =srvResponse.split(" ")[2]
+        console.log("My rank for " + (@currentLevel+1) + " is: " + @currentRank)
+        @currentLevel++        
+        return true
+      
+      setTimeout((-> queryRound(data)),3000)
    
    
    ccMouseWheel = (event) =>
@@ -206,6 +210,14 @@ class window.rank_experiment
       return false  
    
    resetZoom = () =>
+      radius = @majorCircle.attributes[3].value
+      @angleLine.setAttribute("x2",0)
+      @angleLine.setAttribute("y2",radius)
+      @currentGuess.setAttribute("cx",0)
+      @currentGuess.setAttribute("cy",radius)     
+      @targetCircle.setAttribute("cx",0)
+      @targetCircle.setAttribute("cy",radius)
+      
       needed_zoom = 0
       exponent = 120/109
       needed_zoom = Math.pow(1+@zoom_scale,-exponent*@zoom_level) 
@@ -240,13 +252,14 @@ class window.rank_experiment
         @flip = 1
       
       if @rankText.textContent!= ""
-        @rankText.textContent="Your Rank: "+ Math.floor(1+Math.random()*25) + " (25)"
+        @rankText.textContent="Your Rank: " 
       
-      #@circleCanvas.removeEventListener('mousemove',ccMouseMove)
-      #@circleCanvas.removeEventListener('click',ccMouseClick)      
-      #setTimeout(restartGuessingTask, 4000)  
-    
-  
+      #should we send the click to the server?
+      if @gameMode
+         send(@serverURL,@previous_angle)
+         removeListeners()
+         #show wait for all players
+         $(this).on("game.start",queryRound)
    
    
    ccMouseMove = (e) =>
@@ -295,6 +308,7 @@ class window.rank_experiment
         
       else
         resetZoom()
+        removeListeners()
         @instructionsDiv.parentNode.removeChild(@instructionsDiv)            
         styleIndex = 1
         #in Firefox the style information is the 0th attribute of the element
@@ -305,7 +319,11 @@ class window.rank_experiment
         @buttonNext.parentNode.removeChild(@buttonNext)
         @buttonPrevious.parentNode.removeChild(@buttonPrevious)
         @currentLevel = 0
-        getRankCurLevel()
+        $(this).triggerHandler(
+           type:"game.start",
+           var1:'Howdy',
+           information:'I could pass something here also'
+        )
         
     
    prev = () =>  
@@ -368,6 +386,16 @@ class window.rank_experiment
       @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
       if (@isFirefox)
         @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
+        
+   removeListeners = () =>
+      @compositeG.removeEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved
+      @circleCanvas.removeEventListener('click', ccMouseClick, false) #fired when mouse is pressed AND released
+      #add mousewheel event   
+      @circleCanvas.onwheel = null
+      @circleCanvas.onmousewheel = null
+      if (@isFirefox)
+        @circleCanvas.removeEventListener("DOMMouseScroll",ccMouseWheel,false)
+        
    
    init = () =>
      
@@ -382,7 +410,8 @@ class window.rank_experiment
       initInstructions()
       #connect("http://192.168.1.52:8080/",params, "GET")
       console.log(send(@serverURL,"announce"))
-           
+      $(this).on("game.start",queryRound)
+      #__sig__connect(null,gameStartSignal,null,getRankCurLevel)
       
    
     

@@ -25,10 +25,10 @@
       this.instructionIndex = 0;
       this.gameMode = false;
       this.currentLevel = -1;
+      this.currentRank = "";
       this.zoom_scale = 0.2;
       this.zoom_level = 0;
       this.previous_angle = Math.PI / 2;
-      this.timedHover;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.serverURL = "http://129.132.133.54:8080/";
@@ -68,7 +68,7 @@
 
 
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, getRankCurLevel, init, initInstructions, next, prev, resetZoom, restartGuessingTask, send,
+      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, next, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -90,6 +90,9 @@
           } else {
             if (response.responseText.indexOf("announced") !== -1) {
               _this.registered = true;
+            } else if (response.responseText.indexOf("full") !== -1) {
+              alert("Sorry, the game has already started");
+              _this.gameMode = false;
             }
           }
           return serverResponse = response.responseText;
@@ -107,16 +110,20 @@
         });
         return serverResponse;
       };
-      getRankCurLevel = function() {
-        var expectedResponse, srvResponse;
-        srvResponse = send(_this.serverURL, "Rank " + _this.currentLevel);
+      queryRound = function(data) {
+        var srvResponse;
+        srvResponse = send(_this.serverURL, "rank " + _this.currentLevel);
         console.log("Server said " + srvResponse);
-        expectedResponse = "OK " + _this.currentLevel;
-        if (srvResponse !== expectedResponse) {
-          setTimeout(3000);
-          getRankCurLevel();
+        if (srvResponse.indexOf("urrank") !== -1) {
+          addListeners();
+          _this.currentRank = srvResponse.split(" ")[2];
+          console.log("My rank for " + (_this.currentLevel + 1) + " is: " + _this.currentRank);
+          _this.currentLevel++;
+          return true;
         }
-        return console.log("HELL YEAH");
+        return setTimeout((function() {
+          return queryRound(data);
+        }), 3000);
       };
       ccMouseWheel = function(event) {
         var circleParent, circleScaled, deltaX, deltaY, e, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y, zoomLevel;
@@ -173,7 +180,14 @@
         return false;
       };
       resetZoom = function() {
-        var circleParent, circleScaled, exponent, needed_zoom, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y;
+        var circleParent, circleScaled, exponent, needed_zoom, radius, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y;
+        radius = _this.majorCircle.attributes[3].value;
+        _this.angleLine.setAttribute("x2", 0);
+        _this.angleLine.setAttribute("y2", radius);
+        _this.currentGuess.setAttribute("cx", 0);
+        _this.currentGuess.setAttribute("cy", radius);
+        _this.targetCircle.setAttribute("cx", 0);
+        _this.targetCircle.setAttribute("cy", radius);
         needed_zoom = 0;
         exponent = 120 / 109;
         needed_zoom = Math.pow(1 + _this.zoom_scale, -exponent * _this.zoom_level);
@@ -207,7 +221,12 @@
           _this.flip = 1;
         }
         if (_this.rankText.textContent !== "") {
-          return _this.rankText.textContent = "Your Rank: " + Math.floor(1 + Math.random() * 25) + " (25)";
+          _this.rankText.textContent = "Your Rank: ";
+        }
+        if (_this.gameMode) {
+          send(_this.serverURL, _this.previous_angle);
+          removeListeners();
+          return $(_this).on("game.start", queryRound);
         }
       };
       ccMouseMove = function(e) {
@@ -251,6 +270,7 @@
           return resetZoom();
         } else {
           resetZoom();
+          removeListeners();
           _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
           styleIndex = 1;
           if (_this.isFirefox) {
@@ -260,7 +280,11 @@
           _this.buttonNext.parentNode.removeChild(_this.buttonNext);
           _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
           _this.currentLevel = 0;
-          return getRankCurLevel();
+          return $(_this).triggerHandler({
+            type: "game.start",
+            var1: 'Howdy',
+            information: 'I could pass something here also'
+          });
         }
       };
       prev = function() {
@@ -298,12 +322,22 @@
           return _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
         }
       };
+      removeListeners = function() {
+        _this.compositeG.removeEventListener('mousemove', ccMouseMove, false);
+        _this.circleCanvas.removeEventListener('click', ccMouseClick, false);
+        _this.circleCanvas.onwheel = null;
+        _this.circleCanvas.onmousewheel = null;
+        if (_this.isFirefox) {
+          return _this.circleCanvas.removeEventListener("DOMMouseScroll", ccMouseWheel, false);
+        }
+      };
       init = function() {
         _this.buttonNext.onclick = next;
         _this.buttonPrevious.onclick = prev;
         _this.buttonPrevious.disabled = true;
         initInstructions();
-        return console.log(send(_this.serverURL, "announce"));
+        console.log(send(_this.serverURL, "announce"));
+        return $(_this).on("game.start", queryRound);
       };
       return init();
     };

@@ -32,11 +32,11 @@ public class ClientLog {
 	public Vector<gameRound> gameRounds;
 	private int currentRound; //the current round where the client is
 
-	public ClientLog(String client_ip, String reg_begin,int id) {
+	public ClientLog(String client_ip, String reg_begin,String reg_end,int id) {
 		this.id = id;
 		this.client_ip = client_ip;
 		this.reg_begin = reg_begin;
-		this.reg_end = null;
+		this.reg_end = reg_end;
 		this.currentRound = 0;
 		gameRounds = new Vector<gameRound>(GUI.gameRounds);
 	}

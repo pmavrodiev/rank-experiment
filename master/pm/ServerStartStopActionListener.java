@@ -29,6 +29,9 @@ public class ServerStartStopActionListener implements ActionListener{
 				model.getDataVector().removeAllElements();
 				model.fireTableDataChanged();
 				GUI.clients.clear();
+				for (int i=0; i<GUI.gameRounds;i++) GUI.gameRoundsStates[i]=false;
+				GUI.currentRound = 0;
+				GUI.getStartStopButton().setText("Begin Round 1");
 				
 			} catch (Exception exception) {
 				exception.printStackTrace();
