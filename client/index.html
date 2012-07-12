@@ -16,23 +16,24 @@
 	
 	<div id="gameTextDiv" style="height:100%;width:0.5%;float:left;">
 		<textarea id="gameText" readonly="readonly" style="height:100%;width:100%;float:left;"></textarea>
+		
 	</div>
 	
 	<div id="circleCanvasDiv" style="height:100%;width:60%;float:left;">
 		<svg id="circleCanvas" xmlns="http://www.w3.org/1999/xhtml" 
 		     xmlns:svg="http://www.w3.org/2000/svg" 
 		     style="height:100%;width:100%;overflow:visible;"
-		 >
-          <g id="svgCanvas" transform="translate(470,375) scale(1,-1)" style="overflow:visible;">
-		     <circle id="majorCircle" cx="0" cy="0" r="370" stroke="blue" fill="white"
+		     viewBox="0 0 900 800">
+          <g id="svgCanvas" transform="translate(470,365) scale(1,-1)" style="overflow:visible;height:100%;width:100%;">
+		     <circle id="majorCircle" cx="0" cy="0" r="345" stroke="blue" fill="white"
         	 stroke-width="3"></circle>        
-             <circle id="targetCircle" cx="0" cy="370" r="4" stroke="green" fill="none"
+             <circle id="targetCircle" cx="0" cy="345" r="4" stroke="green" fill="none"
               stroke-width="4"></circle>
-             <circle id="currentGuess" cx="0" cy="370" r="4" stroke="red" fill="none"
+             <circle id="currentGuess" cx="0" cy="345" r="4" stroke="red" fill="none"
              stroke-width="4">
                <animate attributeName="r" to="18" dur="0s" repeatCount="3"></animate>
             </circle>
-            <line id="angleLine" x1="0" y1="0" x2="0" y2="370" stroke="green" fill="none" stroke-width="2">
+            <line id="angleLine" x1="0" y1="0" x2="0" y2="345" stroke="green" fill="none" stroke-width="2">
             </line>	
         	</rect>
         	</g> 

@@ -2,10 +2,15 @@ package pm;
 
 
 
+import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.io.PrintStream;
 import java.util.HashMap;
 
 
@@ -14,7 +19,9 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.table.DefaultTableModel;
@@ -28,8 +35,8 @@ public class GUI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	/*game related stuff*/
-	public static final int gameRounds = 10;
-	public static int currentRound = 0;
+	public static final int gameRounds = 2;
+	public static int next_round = 0;
 	public static final int ANNOUNCE=0;	
 	public static final int RE_ANNOUNCE=1;
 	public static final int REG_END=2;
@@ -45,11 +52,19 @@ public class GUI extends JFrame {
 	private static JButton nextRound;
 	private static JScrollPane scrollpane;
 	private static JTable logtable;
+	private static JTextArea console_output;
+	private static JScrollPane console_pane;
+	private static JSplitPane split_pane;
 	/*misc stuff*/
-
-
 	private static final String PREFERRED_LOOK_AND_FEEL = "javax.swing.plaf.metal.MetalLookAndFeel";
 	private static MyServer myServer;
+	private static ReaderThread pOut;
+	private static ReaderThread pErr;
+	static PipedInputStream piOut = new PipedInputStream();
+	static PipedInputStream piErr = new PipedInputStream();
+	static PipedOutputStream poOut;
+	static PipedOutputStream poErr;
+
 
 	public GUI(final MyServer myServer) {
 		GUI.myServer = myServer;
@@ -59,7 +74,6 @@ public class GUI extends JFrame {
 		for (int i=0; i<gameRounds;i++) gameRoundsStates[i]=false;
 		//clients = new Map<String,ClientLog>();
 		initComponents();
-
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -89,9 +103,34 @@ public class GUI extends JFrame {
 		//the scroll pane
 		c.weightx = 1; c.weighty=1;
 		c.gridx = 0; c.gridy = 1;c.anchor = GridBagConstraints.NORTHWEST;
-		this.add(getScrollPane(),c);
-
+		this.add(getJSplitPane(),c);		
 	}
+
+
+	public static JSplitPane getJSplitPane() {
+		if (split_pane == null) {
+			split_pane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,getScrollPane(),getConsolePane());
+			split_pane.setDividerLocation(150);
+		}
+		return split_pane;
+	}
+
+
+	public static JScrollPane getConsolePane() {
+		if (console_pane == null) {
+			console_pane = new JScrollPane(getConsoleOutput());			
+		}
+		return console_pane;
+	}
+
+	public static JTextArea getConsoleOutput() {
+		if (console_output == null) {
+			console_output = new JTextArea();
+			console_output.setEditable(false);			
+		}
+		return console_output;
+	}
+
 
 	public static JButton getStartStopButton() {
 		if (startstop == null) {
@@ -101,15 +140,26 @@ public class GUI extends JFrame {
 		return startstop;
 	}
 
-	private JButton getNextRoundButton() {
+	public static JButton getNextRoundButton() {
 		if (nextRound == null) {
 			nextRound = new JButton("Begin Round 1");
 			nextRound.addActionListener(new ActionListener() {				
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					if (currentRound <= gameRounds) { 
-					   gameRoundsStates[currentRound++] = true;
-					   ((JButton) e.getSource()).setText("Begin Round " + (currentRound+1));
+					if (next_round < gameRounds) {			
+						if (next_round > 0)
+							gameRoundsStates[next_round-1] = false;
+
+						gameRoundsStates[next_round++] = true;
+						if (next_round == gameRounds) {
+							nextRound.setEnabled(false);
+						}
+						else {
+							((JButton) e.getSource()).setText("Begin Round " + (next_round+1));
+							if (next_round == (gameRounds-1))
+								((JButton) e.getSource()).setText("Begin Last Round " + (next_round+1));
+						}
+
 					}
 				}
 			}
@@ -132,7 +182,7 @@ public class GUI extends JFrame {
 		return jPanel0;
 	}
 
-	private JScrollPane getScrollPane() {
+	private static JScrollPane getScrollPane() {
 		if (scrollpane == null) {
 			scrollpane = new JScrollPane(getLogTable());
 			getLogTable().setFillsViewportHeight(true);
@@ -150,7 +200,7 @@ public class GUI extends JFrame {
 			dataModel.addColumn("Client");dataModel.addColumn("RegBegin");dataModel.addColumn("RegEnd");	
 
 			for (int i=0; i<gameRounds; i++) {
-				String c = "Round_" + i + "_BEGIN"; String c2 = "Estimate"; String c3 = "Round_" + i + "_END";
+				String c = "Round_" + (i+1) + "_BEGIN"; String c2 = "Estimate"; String c3 = "Round_" + (i+1) + "_END";
 				dataModel.addColumn(c);	dataModel.addColumn(c2);dataModel.addColumn(c3);				
 			}
 			for (int i=0; i<(3+3*gameRounds); i++) 
@@ -179,22 +229,62 @@ public class GUI extends JFrame {
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
-		installLnF();
-		final MyServer myServer = new MyServer();	
+		installLnF();		
+		myServer = new MyServer();
+		GUI frame = new GUI(myServer);
+		initOutputRedirect(frame);		
+		frame.setDefaultCloseOperation(GUI.EXIT_ON_CLOSE);
+		frame.setTitle("Server Control Monitor");
+		frame.getContentPane().setPreferredSize(frame.getSize());
+		frame.pack();
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
+		/*
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
-			public void run() {
+			public void run() {					   
 				GUI frame = new GUI(myServer);
+				pOut = frame.new ReaderThread(piOut);
+				pErr = frame.new ReaderThread(piErr);
 				frame.setDefaultCloseOperation(GUI.EXIT_ON_CLOSE);
 				frame.setTitle("Server Control Monitor");
 				frame.getContentPane().setPreferredSize(frame.getSize());
 				frame.pack();
 				frame.setLocationRelativeTo(null);
 				frame.setVisible(true);
+				pOut.start();
+				pErr.start();
 			}
 		});
+		 */
 	}
 
+	public static void initOutputRedirect(GUI frame) {
+		if (frame != null) {
+			/*re-direct the default output and error streams*/
+			// Set up System.out
+			try {
+				poOut = new PipedOutputStream(piOut);
+				System.setOut(new PrintStream(poOut, true));					
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// Set up System.err	
+			try {
+				poErr = new PipedOutputStream(piErr);
+				System.setErr(new PrintStream(poErr, true));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			pOut = frame.new ReaderThread(piOut);
+			pErr = frame.new ReaderThread(piErr);
+			pOut.start();
+			pErr.start();
+		}
+		
+	}
 
 	public static void updateGUITable(ClientLog newClient,int state) {
 		DefaultTableModel model = (DefaultTableModel) getLogTable().getModel();
@@ -214,12 +304,74 @@ public class GUI extends JFrame {
 			model.setValueAt((Object) newClient.reg_end, rowIdx, colIdx);
 		}
 		else if (state == ROUND_BEGIN) {
+			int rowIdx = newClient.id;
+			int colIdx = 3 + 3*newClient.currentRound;			
+			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_begin(),
+					rowIdx, colIdx);
 
 		}
 		else if (state == ROUND_ESTIMATE || state == ROUND_END) {
+			int rowIdx = newClient.id;
+			int colIdx = 4 + 3*newClient.currentRound;
+			int colIdx2 = 5 + 3*newClient.currentRound;
 
+			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getEstimate(), 
+					rowIdx, colIdx);
+			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_end(), 
+					rowIdx, colIdx2);
 		}
 
 	}
+
+	public class ReaderThread extends Thread {
+		PipedInputStream pi;
+		ReaderThread(PipedInputStream pi) {
+			this.pi = pi;
+		}
+		public void run() {
+			final byte[] buf = new byte[1024];
+			try {
+				while (true) {
+					final int len = pi.read(buf);
+					if (len == -1) {
+						break;
+					}
+					console_output.append(new String(buf, 0, len));
+
+					// Make sure the last line is always visible
+					console_output.setCaretPosition(console_output.getDocument().getLength());
+
+					// Keep the text area down to a certain character size
+					int idealSize = 1000;
+					int maxExcess = 500;
+					int excess = console_output.getDocument().getLength() - idealSize;
+					if (excess >= maxExcess) {
+						console_output.replaceRange("", 0, excess);
+					}
+					/*
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                        	console_output.append(new String(buf, 0, len));
+
+                            // Make sure the last line is always visible
+                        	console_output.setCaretPosition(console_output.getDocument().getLength());
+
+                            // Keep the text area down to a certain character size
+                            int idealSize = 1000;
+                            int maxExcess = 500;
+                            int excess = console_output.getDocument().getLength() - idealSize;
+                            if (excess >= maxExcess) {
+                            	console_output.replaceRange("", 0, excess);
+                            }
+                        }
+                    });
+					 */
+				}
+			} catch (IOException e) {
+			}
+		}
+	}
+
+
 
 }

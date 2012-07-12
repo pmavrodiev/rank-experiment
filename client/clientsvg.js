@@ -21,17 +21,19 @@
       this.currentGuess = document.getElementById("currentGuess");
       this.angleLine = document.getElementById("angleLine");
       this.rankText = document.getElementById("rankText");
+      this.maxGameRounds = 0;
       this.instructionVector = new Array();
       this.instructionIndex = 0;
       this.gameMode = false;
-      this.currentLevel = -1;
+      this.nextLevel = 0;
       this.currentRank = "";
       this.zoom_scale = 0.2;
       this.zoom_level = 0;
       this.previous_angle = Math.PI / 2;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
-      this.serverURL = "http://129.132.133.54:8080/";
+      this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
+      this.serverURL = "http://82.130.77.39:8080/";
       this.registered = false;
       this.flip = 0;
       if (this.isFirefox) {
@@ -41,34 +43,8 @@
       }
     }
 
-    /* HEADERS
-    client:
-    POST / HTTP/1.1
-    Host: 129.132.133.54:8080
-    Connection: keep-alive
-    Content-Length: 8
-    Origin: http://localhost:3100
-    User-Agent: Mozilla/5.0 (X11; Linux i686) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.47 Safari/536.11
-    Content-Type: application/xml
-    Accept: '*'/'*' remove the '
-    Referer: http://localhost:3100/
-    Accept-Encoding: gzip,deflate,sdch
-    Accept-Language: en-US,en;q=0.8,bg;q=0.6
-    Accept-Charset: windows-1251,utf-8;q=0.7,*;q=0.3
-    
-    server:
-    HTTP/1.1 200 OK
-    Access-Control-Allow-Origin: *
-    Access-Control-Allow-Methods: GET, POST, OPTIONS
-    Access-Control-Allow-Headers: Content-Type
-    Content-Type: text/html;charset=UTF-8
-    Content-Length: 0
-    Server: Jetty(8.1.4.v20120524)
-    */
-
-
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, next, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send,
+      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, next, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, startGame, stopGame, updateGameTextDiv, updateRankInfo,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -93,6 +69,8 @@
             } else if (response.responseText.indexOf("full") !== -1) {
               alert("Sorry, the game has already started");
               _this.gameMode = false;
+            } else if (response.responseText.indexOf("maxrounds") !== -1) {
+              _this.maxGameRounds = parseInt(response.responseText.split(" ")[1]);
             }
           }
           return serverResponse = response.responseText;
@@ -112,18 +90,39 @@
       };
       queryRound = function(data) {
         var srvResponse;
-        srvResponse = send(_this.serverURL, "rank " + _this.currentLevel);
+        srvResponse = send(_this.serverURL, "rank " + _this.nextLevel);
         console.log("Server said " + srvResponse);
         if (srvResponse.indexOf("urrank") !== -1) {
           addListeners();
           _this.currentRank = srvResponse.split(" ")[2];
-          console.log("My rank for " + (_this.currentLevel + 1) + " is: " + _this.currentRank);
-          _this.currentLevel++;
+          console.log("My rank for " + (_this.nextLevel + 1) + " is: " + _this.currentRank);
+          updateRankInfo();
+          updateGameTextDiv(true);
           return true;
         }
         return setTimeout((function() {
           return queryRound(data);
         }), 3000);
+      };
+      updateGameTextDiv = function(flag) {
+        if (!flag) {
+          return _this.gameText.textContent = "Please wait for the other players...";
+        } else {
+          if (_this.nextLevel === (_this.maxGameRounds - 1)) {
+            return _this.gameText.textContent = "Last Round " + (_this.nextLevel + 1) + ": please make a guess. ";
+          } else if (_this.nextLevel === _this.maxGameRounds) {
+            return _this.gameText.textContent = "Thank you for playing the game. You can close your browser now.";
+          } else {
+            return _this.gameText.textContent = "Round " + (_this.nextLevel + 1) + ": please make a guess. ";
+          }
+        }
+      };
+      updateRankInfo = function() {
+        if (_this.nextLevel === _this.maxGameRounds) {
+          return _this.rankText.textContent = "Your final rank: " + _this.currentRank;
+        } else {
+          return _this.rankText.textContent = "Your current rank: " + _this.currentRank;
+        }
       };
       ccMouseWheel = function(event) {
         var circleParent, circleScaled, deltaX, deltaY, e, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y, zoomLevel;
@@ -179,15 +178,23 @@
         _this.buttonNext.disabled = false;
         return false;
       };
-      resetZoom = function() {
+      resetZoom = function(flag) {
         var circleParent, circleScaled, exponent, needed_zoom, radius, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y;
-        radius = _this.majorCircle.attributes[3].value;
-        _this.angleLine.setAttribute("x2", 0);
-        _this.angleLine.setAttribute("y2", radius);
-        _this.currentGuess.setAttribute("cx", 0);
-        _this.currentGuess.setAttribute("cy", radius);
-        _this.targetCircle.setAttribute("cx", 0);
-        _this.targetCircle.setAttribute("cy", radius);
+        if (flag) {
+          radius = _this.majorCircle.getAttribute("r");
+          _this.angleLine.setAttribute("x2", 0);
+          _this.angleLine.setAttribute("y2", radius);
+          _this.currentGuess.setAttribute("cx", 0);
+          _this.currentGuess.setAttribute("cy", radius);
+          _this.targetCircle.setAttribute("cx", 0);
+          _this.targetCircle.setAttribute("cy", radius);
+        }
+        /*
+              Due to this bug: https://bugzilla.mozilla.org/show_bug.cgi?id=762411
+              the latest stable release Firefox 13.0.1 gets the wrong transformation matrix
+              for tmparent. This bug is fixed in the beta version Firefox 14.0b10.
+        */
+
         needed_zoom = 0;
         exponent = 120 / 109;
         needed_zoom = Math.pow(1 + _this.zoom_scale, -exponent * _this.zoom_level);
@@ -209,24 +216,39 @@
         e = e || window.event;
         coord = getCursorPosition(e);
         _this.previous_angle = Math.atan2(coord.y, coord.x);
-        radius = _this.majorCircle.attributes[3].value;
+        radius = _this.majorCircle.getAttribute("r");
         _this.currentGuess.setAttribute("cx", radius * Math.cos(_this.previous_angle));
         _this.currentGuess.setAttribute("cy", radius * Math.sin(_this.previous_angle));
         animatedElement = _this.circleCanvas.getElementsByTagName('animate');
-        animatedElement[0].attributes[2].nodeValue = "1s";
+        animatedElement[0].setAttribute("dur", "1s");
         animatedElement[0].beginElement();
         if (!_this.flip && _this.instructionIndex === 1) {
           _this.instructionsText.textContent += "\n\rThe small red circle at the selected position shows your last quess.\n\r";
           _this.buttonNext.disabled = false;
           _this.flip = 1;
         }
-        if (_this.rankText.textContent !== "") {
-          _this.rankText.textContent = "Your Rank: ";
+        if (_this.rankText.textContent !== "" && _this.gameMode) {
+          _this.rankText.textContent = "Your current rank: ";
         }
         if (_this.gameMode) {
-          send(_this.serverURL, _this.previous_angle);
-          removeListeners();
-          return $(_this).on("game.start", queryRound);
+          if (_this.nextLevel < _this.maxGameRounds) {
+            resetZoom(false);
+            send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.previous_angle);
+            _this.nextLevel++;
+            updateGameTextDiv(false);
+            removeListeners();
+            if (_this.nextLevel < _this.maxGameRounds) {
+              return $(_this).triggerHandler({
+                type: "queryServer",
+                var1: 'Howdy',
+                information: 'I could pass something here also'
+              });
+            } else {
+              return $(_this).triggerHandler({
+                type: "stopGame"
+              });
+            }
+          }
         }
       };
       ccMouseMove = function(e) {
@@ -234,7 +256,7 @@
         e = e || window.event;
         coord = getCursorPosition(e);
         angle = Math.atan2(coord.y, coord.x);
-        radius = _this.majorCircle.attributes[3].value;
+        radius = _this.majorCircle.getAttribute("r");
         _this.angleLine.setAttribute("x2", radius * Math.cos(angle));
         _this.angleLine.setAttribute("y2", radius * Math.sin(angle));
         _this.targetCircle.setAttribute("cx", radius * Math.cos(angle));
@@ -244,8 +266,12 @@
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
       next = function() {
-        var styleIndex;
-        if (!_this.gameMode) {
+        if (_this.buttonNext.innerHTML === "Start") {
+          _this.gameMode = true;
+          return $(_this).triggerHandler({
+            type: "startGame"
+          });
+        } else {
           _this.instructionIndex++;
           if (_this.instructionIndex === 1) {
             _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
@@ -265,27 +291,30 @@
             _this.rankText.textContent = "Your Rank: 1 (25)";
             _this.buttonNext.innerHTML = "Start";
             _this.buttonNext.disabled = false;
-            _this.gameMode = true;
           }
-          return resetZoom();
-        } else {
-          resetZoom();
-          removeListeners();
-          _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
-          styleIndex = 1;
-          if (_this.isFirefox) {
-            styleIndex = 0;
-          }
-          _this.gameTextDiv.attributes[styleIndex].nodeValue = "height:100%;width:20%;float:left;";
-          _this.buttonNext.parentNode.removeChild(_this.buttonNext);
-          _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
-          _this.currentLevel = 0;
-          return $(_this).triggerHandler({
-            type: "game.start",
-            var1: 'Howdy',
-            information: 'I could pass something here also'
-          });
+          return resetZoom(true);
         }
+      };
+      startGame = function() {
+        resetZoom(true);
+        removeListeners();
+        _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
+        _this.gameTextDiv.setAttribute("style", "height:100%;width:20%;float:left;");
+        updateGameTextDiv(false);
+        _this.buttonNext.parentNode.removeChild(_this.buttonNext);
+        _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
+        _this.rankText.textContent = "Your current rank: ";
+        return $(_this).triggerHandler({
+          type: "queryServer",
+          var1: 'Howdy',
+          information: 'I could pass something here also'
+        });
+      };
+      stopGame = function() {
+        _this.gameMode = false;
+        updateGameTextDiv(true);
+        updateRankInfo();
+        return addListeners();
       };
       prev = function() {
         _this.flip = 0;
@@ -301,7 +330,7 @@
           _this.buttonPrevious.disabled = false;
         }
         _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
-        resetZoom();
+        resetZoom(true);
         if (_this.instructionIndex !== 0) {
           return _this.buttonNext.disabled = true;
         }
@@ -310,7 +339,7 @@
         _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "that we have randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your guess is to the hidden point, compared to others.\n\r" + "The game consists of 10 rounds. During each round, you have to make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices.\n\r" + "At the beginning of each round, you will be informed of your relative ranking. " + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Conversely, if you are farthest from the point, you rank last.\n\r" + "Click \"Next\" for a quick practice.";
         _this.instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ...";
         _this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel. " + "The zoom is with respect to the current position of the green line.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
-        _this.instructionVector[3] = "Finally, your current rank is displayed above the circle. " + "The number in the brackets shows the total number " + "of players. Your rank will be updated at the end of each round, after all players " + " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle, in which case random rank information will be presented. " + "Alternatively, you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game.";
+        _this.instructionVector[3] = "Finally, your current rank is displayed above the circle. In the example shown " + "the number in the brackets shows the total number " + "of players. Your rank will be updated at the end of each round, after all players " + " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle, in which case random rank information will be presented. " + "Alternatively, you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game.";
         return _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
       };
       addListeners = function() {
@@ -332,12 +361,18 @@
         }
       };
       init = function() {
+        if (_this.isBuggyFirefox) {
+          alert("Sorry, you are using Firefox version 13.0.1, which has a bug in computing correct" + " coordinates of SVG elements (https://bugzilla.mozilla.org/show_bug.cgi?id=762411). " + "Use either the beta version of Firefox 14.0b10 or a different broswer.");
+          return false;
+        }
         _this.buttonNext.onclick = next;
         _this.buttonPrevious.onclick = prev;
         _this.buttonPrevious.disabled = true;
         initInstructions();
         console.log(send(_this.serverURL, "announce"));
-        return $(_this).on("game.start", queryRound);
+        $(_this).on("queryServer", queryRound);
+        $(_this).on("startGame", startGame);
+        return $(_this).on("stopGame", stopGame);
       };
       return init();
     };

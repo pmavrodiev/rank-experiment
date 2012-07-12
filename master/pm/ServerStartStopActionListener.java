@@ -30,9 +30,9 @@ public class ServerStartStopActionListener implements ActionListener{
 				model.fireTableDataChanged();
 				GUI.clients.clear();
 				for (int i=0; i<GUI.gameRounds;i++) GUI.gameRoundsStates[i]=false;
-				GUI.currentRound = 0;
-				GUI.getStartStopButton().setText("Begin Round 1");
-				
+				GUI.next_round = 0;
+				GUI.getNextRoundButton().setText("Begin Round 1");				
+				GUI.getNextRoundButton().setEnabled(true);				
 			} catch (Exception exception) {
 				exception.printStackTrace();
 			}
@@ -44,6 +44,7 @@ public class ServerStartStopActionListener implements ActionListener{
 			btnStartStop.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 			try {
 				myServer.start();
+				GUI.initOutputRedirect(null);
 			} catch (Exception exception) {
 				exception.printStackTrace();
 			}

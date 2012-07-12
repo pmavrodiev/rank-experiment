@@ -44,8 +44,8 @@ public class MyHandlers {
 					/*Get the POST payload*/
 					String payload = getPOSTpayLoad(request);
 					String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
-					Log.println("Client " + ip + " said: " + payload);
-					if (payload.equals("announce\n")) {
+					Log.print("Client " + ip + " said: " + payload);
+					if (payload.equals("announce\n")) {						
 						if (GUI.gameRoundsStates[0]) {
 							response.getWriter().print("full");
 						}
@@ -57,25 +57,22 @@ public class MyHandlers {
 							 *this particular user.*/
 							ClientLog alreadyAnnounced = GUI.clients.get(ip);						
 							if (alreadyAnnounced != null) {
-								Log.println("Client already announced. Announcement time updated.");
+								Log.println("Client already announced. Announcement time updated.\n");
 								/*update announcement time*/							
 								alreadyAnnounced.reg_begin = dateFormat.format(new Date());
 								GUI.updateGUITable(alreadyAnnounced,GUI.RE_ANNOUNCE);
-								response.getWriter().print("announced");
+								response.getWriter().print("maxrounds "+GUI.gameRounds);
 							}
 
 							else {
 								/*add the client to the known clients*/
-								Log.println("Client announced from "+ip);							
+								Log.println("Client announced from "+ip+"\n");							
 								ClientLog newClient = new ClientLog(ip,dateFormat.format(new Date()),null,GUI.clients.size());	
 								GUI.clients.put(ip, newClient);
 								GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client
-								response.getWriter().print("announced");
+								response.getWriter().print("maxrounds "+GUI.gameRounds);
 							}
 						}
-					}
-					else if (payload.equals("ready\n")) { //update RegEnd
-						//check gameRoundsStates
 					}
 					else if (payload.indexOf("rank") != -1) {
 						//get the second parameter of the payload which is the round the client wants to start
@@ -86,9 +83,16 @@ public class MyHandlers {
 							Integer requestedRound = new Integer(tokenize_payload[1]);
 							if (GUI.gameRoundsStates[requestedRound]) {
 								response.getWriter().print("urrank "+requestedRound + " 10(25)");
-								ClientLog newClient = GUI.clients.get(ip); 
-								newClient.reg_end = dateFormat.format(new Date());
-								GUI.updateGUITable(newClient,GUI.REG_END);
+								String clientTime = dateFormat.format(new Date());
+								ClientLog oldClient = GUI.clients.get(ip);
+								/*round requestedRound begins*/
+								oldClient.initNewRound(clientTime, requestedRound);
+								GUI.updateGUITable(oldClient,GUI.ROUND_BEGIN);								
+								if (requestedRound == 0) {								
+									oldClient.reg_end = clientTime;
+									GUI.updateGUITable(oldClient,GUI.REG_END);
+								}
+
 							}
 							else {
 								response.getWriter().print("wait "+requestedRound);
@@ -101,9 +105,31 @@ public class MyHandlers {
 
 					}
 					else if (payload.indexOf("estimate") != -1 ) {
-						//e.g. estimate 12.2348239 1
+						//e.g. estimate 1 12.2348239 
 						//estimate of 12.2348239 for round 1
 						//the time of receiving this is also the time for Round_X_END
+						String[] tokenize_payload = payload.split("\\s");
+						try {
+							response.getWriter().print("ok");
+							Integer estimateForRound = new Integer(tokenize_payload[1]);
+							Double clientEstimate = new Double(tokenize_payload[2]);
+							String clientTime = dateFormat.format(new Date());
+							/* sanity check */
+							if (!GUI.gameRoundsStates[estimateForRound]) {
+								Log.println("Sanity check failed: Client " + ip +" submitted estimate for finished round.");
+							}
+							/*update the round info for this client*/
+							ClientLog oldClient = GUI.clients.get(ip);
+							oldClient.updateRound(clientTime, clientEstimate, estimateForRound);
+							GUI.updateGUITable(oldClient,GUI.ROUND_END);
+
+							
+						}
+						catch (NumberFormatException e) {
+							response.getWriter().print("malformed request " + payload);
+						}
+
+
 					}
 					else {response.getWriter().print("unknown_request");					}
 				}
