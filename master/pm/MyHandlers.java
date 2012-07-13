@@ -19,6 +19,7 @@ public class MyHandlers {
 	public static class CLIENT extends AbstractHandler {
 		public static int myport = 8080;
 		public static DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+		public static Log log = new Log(true);
 
 		private String getPOSTpayLoad(HttpServletRequest request) throws IOException {
 			BufferedReader reader = request.getReader();
@@ -44,10 +45,13 @@ public class MyHandlers {
 					/*Get the POST payload*/
 					String payload = getPOSTpayLoad(request);
 					String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
-					Log.print("Client " + ip + " said: " + payload);
+					log.print("Client " + ip + " said: " + payload);
 					if (payload.equals("announce\n")) {						
-						if (GUI.gameRoundsStates[0]) {
-							response.getWriter().print("full");
+						if (GUI.finished) {
+							response.getWriter().print("finished");
+						}
+						else if (GUI.inprogress) {
+							response.getWriter().print("inprogress");
 						}
 						else {
 							/*Has the client already announced himself?
@@ -57,7 +61,7 @@ public class MyHandlers {
 							 *this particular user.*/
 							ClientLog alreadyAnnounced = GUI.clients.get(ip);						
 							if (alreadyAnnounced != null) {
-								Log.println("Client already announced. Announcement time updated.\n");
+								log.println("Client already announced. Announcement time updated.\n");
 								/*update announcement time*/							
 								alreadyAnnounced.reg_begin = dateFormat.format(new Date());
 								GUI.updateGUITable(alreadyAnnounced,GUI.RE_ANNOUNCE);
@@ -66,7 +70,7 @@ public class MyHandlers {
 
 							else {
 								/*add the client to the known clients*/
-								Log.println("Client announced from "+ip+"\n");							
+								log.println("Client announced from "+ip+"\n");							
 								ClientLog newClient = new ClientLog(ip,dateFormat.format(new Date()),null,GUI.clients.size());	
 								GUI.clients.put(ip, newClient);
 								GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client
@@ -79,12 +83,14 @@ public class MyHandlers {
 						//e.g. round 0
 						//if the round can be started, update Round_X_BEGIN
 						String[] tokenize_payload = payload.split("\\s");
+						ClientLog oldClient = GUI.clients.get(ip);
 						try {
 							Integer requestedRound = new Integer(tokenize_payload[1]);
-							if (GUI.gameRoundsStates[requestedRound]) {
-								response.getWriter().print("urrank "+requestedRound + " 10(25)");
-								String clientTime = dateFormat.format(new Date());
-								ClientLog oldClient = GUI.clients.get(ip);
+							if (GUI.gameRoundsStates[requestedRound]) {//rank started?
+								int myRank = GUI.currentRanks.get(oldClient.id);										
+								oldClient.getRound(requestedRound).setRank(myRank);
+								response.getWriter().print("urrank "+requestedRound + " " + myRank +"("+GUI.clients.size()+")");
+								String clientTime = dateFormat.format(new Date());								
 								/*round requestedRound begins*/
 								oldClient.initNewRound(clientTime, requestedRound);
 								GUI.updateGUITable(oldClient,GUI.ROUND_BEGIN);								
@@ -116,14 +122,14 @@ public class MyHandlers {
 							String clientTime = dateFormat.format(new Date());
 							/* sanity check */
 							if (!GUI.gameRoundsStates[estimateForRound]) {
-								Log.println("Sanity check failed: Client " + ip +" submitted estimate for finished round.");
+								log.println("Sanity check failed: Client " + ip +" submitted estimate for finished round.");
 							}
 							/*update the round info for this client*/
 							ClientLog oldClient = GUI.clients.get(ip);
 							oldClient.updateRound(clientTime, clientEstimate, estimateForRound);
 							GUI.updateGUITable(oldClient,GUI.ROUND_END);
 
-							
+
 						}
 						catch (NumberFormatException e) {
 							response.getWriter().print("malformed request " + payload);
@@ -137,7 +143,7 @@ public class MyHandlers {
 			}
 		}
 	}
-
+	/*
 	public static class BOSS extends AbstractHandler {
 		public static int myport = 8000;
 
@@ -145,17 +151,18 @@ public class MyHandlers {
 				HttpServletResponse response) throws IOException, ServletException {
 
 			if (baseRequest.getConnection().getConnector().getPort() == myport) {
-				Log.println("I am boss handler");
+				log.println("I am boss handler");
 
 				response.setHeader("Access-Control-Allow-Origin", "*");				
 				response.setContentType("text/html;charset=utf-8");
 				response.setStatus(HttpServletResponse.SC_OK);
 				baseRequest.setHandled(true);
 				String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
-				Log.println("Boss connected from "+ip);
+				log.println("Boss connected from "+ip);
 				response.getWriter().println("<h1>You are a boss from "+ip+"</h1>");
 			}
 		}
 	}
+	 */
 
 }

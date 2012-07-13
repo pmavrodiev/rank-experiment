@@ -38,7 +38,7 @@ public class ServerRunner extends JFrame{
 		},"Stop Jetty Hook")); 
 		setVisible(true);
 	}
-	
+	/*
 	public static void main(String[] args) throws Exception {		
 		final MyServer myServer = new MyServer();		
 		Runnable runner = new Runnable() {
@@ -49,7 +49,7 @@ public class ServerRunner extends JFrame{
 		};
 		EventQueue.invokeLater(runner);
 	}
-	
+	*/
 	
 	
 }

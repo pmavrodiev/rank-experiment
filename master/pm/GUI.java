@@ -2,7 +2,7 @@ package pm;
 
 
 
-import java.awt.Component;
+
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
@@ -11,7 +11,13 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+
 import java.util.HashMap;
+
 
 
 
@@ -22,7 +28,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
+
 import javax.swing.UIManager;
 import javax.swing.table.DefaultTableModel;
 
@@ -35,7 +41,12 @@ public class GUI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	/*game related stuff*/
-	public static final int gameRounds = 2;
+	public static final double truth = -35.0; //in degrees
+	/*the mean of the normal distribution that generates the initial guesses is fixed to +90*/
+	public static final double mu = 90.0;
+	public static final double init_colllective_err = Math.pow(truth-mu,2.0); 
+	public static final double init_diversity = 0.0025;
+	public static final int gameRounds = 5;
 	public static int next_round = 0;
 	public static final int ANNOUNCE=0;	
 	public static final int RE_ANNOUNCE=1;
@@ -43,6 +54,13 @@ public class GUI extends JFrame {
 	public static final int ROUND_BEGIN=3;
 	public static final int ROUND_ESTIMATE=4;
 	public static final int ROUND_END=5;
+	public static boolean inprogress=false;
+	public static boolean finished = false;
+	/*maps initial estimate to rank*/
+	//public static HashMap<Double, Integer> initialEstimates;
+	/*maps current estimate to rank*/
+	public static HashMap<Integer, Integer> currentRanks; //id->rank
+	public static ArrayList<Double> currentEstimates;
 	//stores the initial states (=false) of each game round
 	public static boolean[] gameRoundsStates;	
 	public static HashMap<String,ClientLog> clients;
@@ -52,7 +70,7 @@ public class GUI extends JFrame {
 	private static JButton nextRound;
 	private static JScrollPane scrollpane;
 	private static JTable logtable;
-	private static JTextArea console_output;
+	public static JTextArea console_output;
 	private static JScrollPane console_pane;
 	private static JSplitPane split_pane;
 	/*misc stuff*/
@@ -64,7 +82,6 @@ public class GUI extends JFrame {
 	static PipedInputStream piErr = new PipedInputStream();
 	static PipedOutputStream poOut;
 	static PipedOutputStream poErr;
-
 
 	public GUI(final MyServer myServer) {
 		GUI.myServer = myServer;
@@ -87,7 +104,6 @@ public class GUI extends JFrame {
 			}
 		},"Stop Jetty Hook"));		
 		/*init logging*/
-
 	}
 
 	private void initComponents() {
@@ -146,13 +162,38 @@ public class GUI extends JFrame {
 			nextRound.addActionListener(new ActionListener() {				
 				@Override
 				public void actionPerformed(ActionEvent e) {
+					inprogress = true;				
 					if (next_round < gameRounds) {			
-						if (next_round > 0)
+						if (next_round > 0) //because initially it's 0
 							gameRoundsStates[next_round-1] = false;
+						if (next_round == 0) {
+							/*generate initial ranks*/						
+							currentRanks = new HashMap<Integer, Integer>(GUI.clients.size());							
+							currentEstimates = new ArrayList<Double>(GUI.clients.size());
+							for (int i=0; i<GUI.clients.size();i++) {
+								currentRanks.put(i, -1);
+								currentEstimates.add(WrappedGaussian.phi_wrapped(mu, Math.sqrt(init_diversity))); 
+								
+							}	
 
+						} 
+						else{ //not the very first round
+							/*TODO THIS IS THE PROBLEM, THE CAST TO ARRAYLIST*/
+							/*populate currentEstimates with data from the last round*/
+							//cycle through all clients
+							Collection<ClientLog> cc = clients.values();
+							ArrayList<ClientLog> l = (ArrayList<ClientLog>) cc;
+							for (int i=0; i<cc.size();i++) {								
+								ClientLog oldClient = l.get(i);
+								currentEstimates.set(i, oldClient.getRound(next_round-1).getEstimateAsDouble());
+							}
+
+						}
+						computeRanks();	
 						gameRoundsStates[next_round++] = true;
 						if (next_round == gameRounds) {
 							nextRound.setEnabled(false);
+							finished=true;
 						}
 						else {
 							((JButton) e.getSource()).setText("Begin Round " + (next_round+1));
@@ -232,7 +273,7 @@ public class GUI extends JFrame {
 		installLnF();		
 		myServer = new MyServer();
 		GUI frame = new GUI(myServer);
-		initOutputRedirect(frame);		
+		initOutputRedirect();		
 		frame.setDefaultCloseOperation(GUI.EXIT_ON_CLOSE);
 		frame.setTitle("Server Control Monitor");
 		frame.getContentPane().setPreferredSize(frame.getSize());
@@ -259,31 +300,38 @@ public class GUI extends JFrame {
 		 */
 	}
 
-	public static void initOutputRedirect(GUI frame) {
-		if (frame != null) {
-			/*re-direct the default output and error streams*/
-			// Set up System.out
-			try {
-				poOut = new PipedOutputStream(piOut);
-				System.setOut(new PrintStream(poOut, true));					
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			// Set up System.err	
-			try {
-				poErr = new PipedOutputStream(piErr);
-				System.setErr(new PrintStream(poErr, true));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			pOut = frame.new ReaderThread(piOut);
-			pErr = frame.new ReaderThread(piErr);
-			pOut.start();
-			pErr.start();
+	public static void initOutputRedirect() {
+		/*re-direct the default output and error streams*/
+		// Set up System.out
+		try {
+			poOut = new PipedOutputStream(piOut);
+			System.setOut(new PrintStream(poOut, true));	
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		
+		// Set up System.err	
+		try {
+			poErr = new PipedOutputStream(piErr);
+			System.setErr(new PrintStream(poErr, true));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		pOut = new ReaderThread(piOut);
+		pErr = new ReaderThread(piErr);
+		pOut.start();
+		pErr.start();
+	}
+
+	public static void stopOutputRedirect() throws IOException {
+		poOut.flush();
+		poOut.close();
+		poErr.flush();
+		poErr.close();
+		piOut.close();
+		piErr.close();
+
 	}
 
 	public static void updateGUITable(ClientLog newClient,int state) {
@@ -323,54 +371,19 @@ public class GUI extends JFrame {
 
 	}
 
-	public class ReaderThread extends Thread {
-		PipedInputStream pi;
-		ReaderThread(PipedInputStream pi) {
-			this.pi = pi;
-		}
-		public void run() {
-			final byte[] buf = new byte[1024];
-			try {
-				while (true) {
-					final int len = pi.read(buf);
-					if (len == -1) {
-						break;
-					}
-					console_output.append(new String(buf, 0, len));
+	public static void computeRanks() {
+		//maps estimate to client_id
+		HashMap<Double, Integer> tmp = new HashMap<Double,Integer>(clients.size());
+		for (int i=0; i<clients.size(); i++)
+			tmp.put(currentEstimates.get(i),i);		    
 
-					// Make sure the last line is always visible
-					console_output.setCaretPosition(console_output.getDocument().getLength());
-
-					// Keep the text area down to a certain character size
-					int idealSize = 1000;
-					int maxExcess = 500;
-					int excess = console_output.getDocument().getLength() - idealSize;
-					if (excess >= maxExcess) {
-						console_output.replaceRange("", 0, excess);
-					}
-					/*
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                        	console_output.append(new String(buf, 0, len));
-
-                            // Make sure the last line is always visible
-                        	console_output.setCaretPosition(console_output.getDocument().getLength());
-
-                            // Keep the text area down to a certain character size
-                            int idealSize = 1000;
-                            int maxExcess = 500;
-                            int excess = console_output.getDocument().getLength() - idealSize;
-                            if (excess >= maxExcess) {
-                            	console_output.replaceRange("", 0, excess);
-                            }
-                        }
-                    });
-					 */
-				}
-			} catch (IOException e) {
-			}
-		}
+		java.util.Collections.sort(currentEstimates);
+		int ctr = 1;
+		for (int i=currentEstimates.size()-1; i>=0; i--) 
+			currentRanks.put(tmp.get(currentEstimates.get(i)), ctr++);
 	}
+
+
 
 
 

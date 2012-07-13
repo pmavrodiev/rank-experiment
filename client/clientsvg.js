@@ -24,7 +24,7 @@
       this.maxGameRounds = 0;
       this.instructionVector = new Array();
       this.instructionIndex = 0;
-      this.gameMode = false;
+      this.gameMode = "";
       this.nextLevel = 0;
       this.currentRank = "";
       this.zoom_scale = 0.2;
@@ -33,7 +33,7 @@
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
-      this.serverURL = "http://82.130.77.39:8080/";
+      this.serverURL = "http://129.132.133.54:8080/";
       this.registered = false;
       this.flip = 0;
       if (this.isFirefox) {
@@ -66,8 +66,11 @@
           } else {
             if (response.responseText.indexOf("announced") !== -1) {
               _this.registered = true;
-            } else if (response.responseText.indexOf("full") !== -1) {
+            } else if (response.responseText.indexOf("inprogress") !== -1) {
               alert("Sorry, the game has already started");
+              _this.gameMode = false;
+            } else if (response.responseText.indexOf("finished") !== -1) {
+              alert("The game has already finished");
               _this.gameMode = false;
             } else if (response.responseText.indexOf("maxrounds") !== -1) {
               _this.maxGameRounds = parseInt(response.responseText.split(" ")[1]);
@@ -233,7 +236,7 @@
         if (_this.gameMode) {
           if (_this.nextLevel < _this.maxGameRounds) {
             resetZoom(false);
-            send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.previous_angle);
+            send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.previous_angle * 180 / Math.PI);
             _this.nextLevel++;
             updateGameTextDiv(false);
             removeListeners();
@@ -266,12 +269,12 @@
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
       next = function() {
-        if (_this.buttonNext.innerHTML === "Start") {
+        if (_this.buttonNext.innerHTML === "Start" && _this.gameMode !== false) {
           _this.gameMode = true;
           return $(_this).triggerHandler({
             type: "startGame"
           });
-        } else {
+        } else if (_this.instructionIndex < 3) {
           _this.instructionIndex++;
           if (_this.instructionIndex === 1) {
             _this.compositeG.addEventListener('mousemove', ccMouseMove, false);

@@ -8,23 +8,23 @@ public class ClientLog {
 		private String round_begin;
 		private String estimate;
 		private String round_end;
-		@SuppressWarnings("unused")
+		private double rank; //the rank in this round
+		
 		public gameRound() {
-			round_begin=null;estimate=null;round_end=null;
+			round_begin=null;estimate=null;round_end=null; setRank(-1.0);
 		}
-
-		@SuppressWarnings("unused")
-		public void setRound_begin(String round_begin) {this.round_begin = round_begin;	}
-		@SuppressWarnings("unused")
-		public String getRound_begin() {return round_begin;	}
-		@SuppressWarnings("unused")
-		public void setEstimate(String estimate) {this.estimate = estimate;	}
-		@SuppressWarnings("unused")
-		public String getEstimate() {return estimate;}
-		@SuppressWarnings("unused")
+		
+		public void setRound_begin(String round_begin) {this.round_begin = round_begin;	}		
+		public String getRound_begin() {return round_begin;	}		
+		public void setEstimate(String estimate) {this.estimate = estimate;	}	
+		public String getEstimate() {return estimate;}	
 		public void setRound_end(String round_end) {this.round_end = round_end;	}
-		@SuppressWarnings("unused")
 		public String getRound_end() {return round_end;}
+		public double getRank() {return rank;}
+		public void setRank(double rank) {this.rank = rank;}
+		public double getEstimateAsDouble() {
+			return Double.parseDouble(estimate);
+		}
 	}	
 	
 	public int id;
@@ -42,7 +42,6 @@ public class ClientLog {
 		this.currentRound = 0;
 		for (int i=0; i<GUI.gameRounds; i++)
 			gameRounds.add(new gameRound());
-
 	}
 	
 	public ClientLog(String client_ip) {

@@ -24,7 +24,7 @@ class window.rank_experiment
     @maxGameRounds = 0 #obtained from the server upon announcement
     @instructionVector = new Array()
     @instructionIndex = 0
-    @gameMode = false
+    @gameMode = ""
     @nextLevel = 0
     @currentRank = ""
     @zoom_scale = 0.2
@@ -37,7 +37,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://82.130.77.39:8080/"
+    @serverURL = "http://129.132.133.54:8080/"
     @registered = false
      
     
@@ -73,8 +73,11 @@ class window.rank_experiment
         else #success
           if response.responseText.indexOf("announced") != -1
             @registered = true
-          else if response.responseText.indexOf("full") != -1
+          else if response.responseText.indexOf("inprogress")  != -1
             alert("Sorry, the game has already started")
+            @gameMode = false
+          else if response.responseText.indexOf("finished") != -1
+            alert("The game has already finished")
             @gameMode = false
           else if response.responseText.indexOf("maxrounds") != -1
             @maxGameRounds = parseInt(response.responseText.split(" ")[1])    
@@ -256,7 +259,7 @@ class window.rank_experiment
       if @gameMode
          if @nextLevel < @maxGameRounds
             resetZoom(false)
-            send(@serverURL,"estimate "+@nextLevel + " " + @previous_angle)       
+            send(@serverURL,"estimate "+@nextLevel + " " + @previous_angle*180/Math.PI)       
             @nextLevel++     
             #show wait for all players
             updateGameTextDiv(false)
@@ -287,10 +290,10 @@ class window.rank_experiment
       
         
    next = () =>
-        if @buttonNext.innerHTML == "Start"     
+        if @buttonNext.innerHTML == "Start" and @gameMode != false
           @gameMode = true
           $(this).triggerHandler(type:"startGame")
-        else
+        else if @instructionIndex < 3
             @instructionIndex++
             if @instructionIndex == 1
               @compositeG.addEventListener('mousemove', ccMouseMove, false) #fired when mouse is moved

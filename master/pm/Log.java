@@ -3,15 +3,23 @@ package pm;
 import java.io.PrintStream;
 
 public class Log {
-	public static PrintStream ps = System.out;
-	public static boolean DEBUG = true;
-	public static void println(Object what) {
-		if (DEBUG)
-			ps.println(what);
+	//public PrintStream ps;
+	public boolean DEBUG;
+
+	public Log(boolean shouldwelog) {
+		//ps = System.out;
+		DEBUG = shouldwelog;
 	}
-	public static void print(Object what) {
+
+	public void println(Object what) {
 		if (DEBUG)
-			ps.print(what);
+			//ps.println(what);
+			System.out.println(what);
 	}
-	
+	public void print(Object what) {
+		if (DEBUG)
+			//ps.print(what);
+			System.out.print(what);
+	}
+
 }
