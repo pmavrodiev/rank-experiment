@@ -11,16 +11,16 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
-
 import java.util.ArrayList;
-import java.util.Collection;
-
-
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.HashMap;
-
-
-
-
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -28,12 +28,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
-
 import javax.swing.UIManager;
 import javax.swing.table.DefaultTableModel;
-
-
-
+import org.apache.commons.collections.map.MultiValueMap; 
 
 
 
@@ -41,12 +38,12 @@ public class GUI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	/*game related stuff*/
-	public static final double truth = -35.0; //in degrees
+	public static final double truth = 25.0; //in degrees
 	/*the mean of the normal distribution that generates the initial guesses is fixed to +90*/
 	public static final double mu = 90.0;
 	public static final double init_colllective_err = Math.pow(truth-mu,2.0); 
 	public static final double init_diversity = 0.0025;
-	public static final int gameRounds = 5;
+	public static final int gameRounds = 10;
 	public static int next_round = 0;
 	public static final int ANNOUNCE=0;	
 	public static final int RE_ANNOUNCE=1;
@@ -54,6 +51,7 @@ public class GUI extends JFrame {
 	public static final int ROUND_BEGIN=3;
 	public static final int ROUND_ESTIMATE=4;
 	public static final int ROUND_END=5;
+	public static final int RANK=6;
 	public static boolean inprogress=false;
 	public static boolean finished = false;
 	/*maps initial estimate to rank*/
@@ -63,7 +61,7 @@ public class GUI extends JFrame {
 	public static ArrayList<Double> currentEstimates;
 	//stores the initial states (=false) of each game round
 	public static boolean[] gameRoundsStates;	
-	public static HashMap<String,ClientLog> clients;
+	public static  LinkedHashMap<String,ClientLog> clients;
 	/*swing stuff*/
 	private static JPanel jPanel0;
 	private static JButton startstop;
@@ -86,9 +84,9 @@ public class GUI extends JFrame {
 	public GUI(final MyServer myServer) {
 		GUI.myServer = myServer;
 		/*game related stuff*/
-		clients = new HashMap<String,ClientLog>();
-		gameRoundsStates = new boolean[gameRounds];
-		for (int i=0; i<gameRounds;i++) gameRoundsStates[i]=false;
+		clients = new LinkedHashMap<String,ClientLog>();
+		gameRoundsStates = new boolean[gameRounds+1]; //+1 for the final dummy round, i.e. similar to the .end() iterator in stl containers
+		for (int i=0; i<(gameRounds+1);i++) gameRoundsStates[i]=false;
 		//clients = new Map<String,ClientLog>();
 		initComponents();
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -163,49 +161,51 @@ public class GUI extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					inprogress = true;				
-					if (next_round < gameRounds) {			
-						if (next_round > 0) //because initially it's 0
-							gameRoundsStates[next_round-1] = false;
+					if (next_round <= gameRounds) { 						
 						if (next_round == 0) {
 							/*generate initial ranks*/						
 							currentRanks = new HashMap<Integer, Integer>(GUI.clients.size());							
 							currentEstimates = new ArrayList<Double>(GUI.clients.size());
 							for (int i=0; i<GUI.clients.size();i++) {
 								currentRanks.put(i, -1);
-								currentEstimates.add(WrappedGaussian.phi_wrapped(mu, Math.sqrt(init_diversity))); 
-								
+								currentEstimates.add(WrappedGaussian.phi_wrapped(mu, Math.sqrt(init_diversity)));								
 							}	
 
 						} 
-						else{ //not the very first round
-							/*TODO THIS IS THE PROBLEM, THE CAST TO ARRAYLIST*/
-							/*populate currentEstimates with data from the last round*/
-							//cycle through all clients
-							Collection<ClientLog> cc = clients.values();
-							ArrayList<ClientLog> l = (ArrayList<ClientLog>) cc;
-							for (int i=0; i<cc.size();i++) {								
-								ClientLog oldClient = l.get(i);
-								currentEstimates.set(i, oldClient.getRound(next_round-1).getEstimateAsDouble());
+						else { //not the very first round							
+							/*populate currentEstimates with data from the last round*/		
+							gameRoundsStates[next_round-1] = false; //invalidate the previous round
+							Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
+							Iterator<Map.Entry<String,ClientLog>> itr = s.iterator();
+							int i=0;
+							while (itr.hasNext()) {
+								Map.Entry<String,ClientLog> el = itr.next();
+								ClientLog oldClient = el.getValue();
+								currentEstimates.set(i++, oldClient.getRound(next_round-1).getEstimateAsDouble());
 							}
-
 						}
-						computeRanks();	
+						computeRanks();
 						gameRoundsStates[next_round++] = true;
 						if (next_round == gameRounds) {
-							nextRound.setEnabled(false);
+							((JButton) e.getSource()).setText("Finish the game");							
 							finished=true;
 						}
+						else if (next_round == (gameRounds+1))
+							((JButton) e.getSource()).setEnabled(false);
 						else {
 							((JButton) e.getSource()).setText("Begin Round " + (next_round+1));
 							if (next_round == (gameRounds-1))
 								((JButton) e.getSource()).setText("Begin Last Round " + (next_round+1));
 						}
+						updateGUITable(null, RANK);
+					} //end if (next_round<gameRounds
+					
 
-					}
 				}
 			}
+
 					);
-			//startstop.addActionListener(new ServerStartStopActionListener(myServer));
+
 		}
 		return nextRound;
 	}
@@ -238,13 +238,17 @@ public class GUI extends JFrame {
 			DefaultTableModel dataModel = new 	DefaultTableModel();
 			logtable = new JTable(dataModel);
 			/*create columns*/
-			dataModel.addColumn("Client");dataModel.addColumn("RegBegin");dataModel.addColumn("RegEnd");	
+			dataModel.addColumn("Client");dataModel.addColumn("RegBegin");dataModel.addColumn("RegEnd");
+			dataModel.addColumn("Initial Rank");
 
 			for (int i=0; i<gameRounds; i++) {
-				String c = "Round_" + (i+1) + "_BEGIN"; String c2 = "Estimate"; String c3 = "Round_" + (i+1) + "_END";
-				dataModel.addColumn(c);	dataModel.addColumn(c2);dataModel.addColumn(c3);				
+				String c = "Round_" + (i+1) + "_BEGIN"; 
+				String c2 = "Estimate";
+				String c3 = "Rank";
+				String c4 = "Round_" + (i+1) + "_END";
+				dataModel.addColumn(c);	dataModel.addColumn(c2);dataModel.addColumn(c3);dataModel.addColumn(c4);				
 			}
-			for (int i=0; i<(3+3*gameRounds); i++) 
+			for (int i=0; i<(4+4*gameRounds); i++) 
 				logtable.getColumnModel().getColumn(i).setPreferredWidth(120);
 
 			logtable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF );  
@@ -307,7 +311,7 @@ public class GUI extends JFrame {
 			poOut = new PipedOutputStream(piOut);
 			System.setOut(new PrintStream(poOut, true));	
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+
 			e.printStackTrace();
 		}
 		// Set up System.err	
@@ -315,7 +319,7 @@ public class GUI extends JFrame {
 			poErr = new PipedOutputStream(piErr);
 			System.setErr(new PrintStream(poErr, true));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+
 			e.printStackTrace();
 		}
 		pOut = new ReaderThread(piOut);
@@ -353,36 +357,65 @@ public class GUI extends JFrame {
 		}
 		else if (state == ROUND_BEGIN) {
 			int rowIdx = newClient.id;
-			int colIdx = 3 + 3*newClient.currentRound;			
+			int colIdx = 4 + 4*newClient.currentRound;			
 			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_begin(),
 					rowIdx, colIdx);
 
 		}
 		else if (state == ROUND_ESTIMATE || state == ROUND_END) {
 			int rowIdx = newClient.id;
-			int colIdx = 4 + 3*newClient.currentRound;
-			int colIdx2 = 5 + 3*newClient.currentRound;
+			int colIdx = 5 + 4*newClient.currentRound;
+			int colIdx2 = 7 + 4*newClient.currentRound;
 
 			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getEstimate(), 
 					rowIdx, colIdx);
 			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_end(), 
 					rowIdx, colIdx2);
 		}
+		else if (state == RANK) {				
+			int colIdx = 2+4*(next_round-1);
+			if (next_round-1 == 0)
+				colIdx = 3;
+			for (int i=0; i<clients.size();i++) {
+				int rowIdx = i; //this is the id				
+				model.setValueAt(currentRanks.get(i), rowIdx, colIdx);
+				
+			}
+		}
 
 	}
 
 	public static void computeRanks() {
-		//maps estimate to client_id
-		HashMap<Double, Integer> tmp = new HashMap<Double,Integer>(clients.size());
-		for (int i=0; i<clients.size(); i++)
-			tmp.put(currentEstimates.get(i),i);		    
-
-		java.util.Collections.sort(currentEstimates);
+		//maps distance to the truth to client_id
+		MultiValueMap tmp = new MultiValueMap(); //because we may have non-unique estimates		
+		for (int i=0; i<clients.size(); i++) {
+			double distance = Math.abs(currentEstimates.get(i)-GUI.truth); 
+			tmp.put(distance,i);
+		}
+		LinkedHashMap<Double,ArrayList<Integer>> tmp2 = SortByValue(tmp);
+		List<Map.Entry<Double, ArrayList<Integer>>> list = new LinkedList<Map.Entry<Double, ArrayList<Integer>>>(tmp2.entrySet());
 		int ctr = 1;
-		for (int i=currentEstimates.size()-1; i>=0; i--) 
-			currentRanks.put(tmp.get(currentEstimates.get(i)), ctr++);
+		for (Map.Entry<Double, ArrayList<Integer>> entry : list) {
+			ArrayList<Integer> valueList = entry.getValue();
+			for (int j=0; j<valueList.size(); j++)
+				currentRanks.put(valueList.get(j), ctr++);
+		}
 	}
 
+	@SuppressWarnings("unchecked")
+	public static LinkedHashMap<Double,ArrayList<Integer>> SortByValue(MultiValueMap tmp2) {
+		List<Map.Entry<Double, ArrayList<Integer>>> list = new LinkedList<Map.Entry<Double, ArrayList<Integer>>>(tmp2.entrySet());
+		Collections.sort(list, new Comparator<Map.Entry<Double,ArrayList<Integer>>>(){
+			public int compare(Map.Entry<Double,ArrayList<Integer>> m1, Map.Entry<Double,ArrayList<Integer>> m2) {
+				return (m1.getKey().compareTo(m2.getKey()));
+			}
+		});		
+		LinkedHashMap<Double, ArrayList<Integer>> result = new LinkedHashMap<Double, ArrayList<Integer>>();		
+		for (Map.Entry<Double, ArrayList<Integer>> entry : list) {
+			result.put(entry.getKey(), entry.getValue());
+		}
+		return result;
+	}
 
 
 

@@ -7,12 +7,14 @@
       this.windowWidth = window.innerWidth;
       this.windowHeight = window.innerHeight;
       this.buttonNext = document.getElementById("next");
+      this.buttonNextText = document.getElementsByClassName("nextbuttontext")[0];
       this.buttonPrevious = document.getElementById("previous");
       this.instructionsText = document.getElementById("instructions");
       this.circleCanvasDiv = document.getElementById("circleCanvasDiv");
       this.instructionsDiv = document.getElementById("instructionsDiv");
       this.gameTextDiv = document.getElementById("gameTextDiv");
       this.gameText = document.getElementById("gameText");
+      this.gameTextWebSymbols = document.getElementsByClassName("websymbols")[0];
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
@@ -44,7 +46,7 @@
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, next, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, startGame, stopGame, updateGameTextDiv, updateRankInfo,
+      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, loadme, next, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, startGame, stopGame, updateGameTextDiv, updateRankInfo,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -98,7 +100,7 @@
         if (srvResponse.indexOf("urrank") !== -1) {
           addListeners();
           _this.currentRank = srvResponse.split(" ")[2];
-          console.log("My rank for " + (_this.nextLevel + 1) + " is: " + _this.currentRank);
+          console.log("My rank at the beginning of round " + (_this.nextLevel + 1) + " is: " + _this.currentRank);
           updateRankInfo();
           updateGameTextDiv(true);
           return true;
@@ -107,9 +109,23 @@
           return queryRound(data);
         }), 3000);
       };
+      loadme = function(data) {
+        var _ref;
+        _this.gameTextWebSymbols.innerHTML = data.loaderSymbols[data.loaderIndex];
+        data.loaderIndex = (_ref = data.loaderIndex < data.loaderSymbols.length - 1) != null ? _ref : data.loaderIndex + 1;
+        return setTimeout(loadme(data), data.loaderRate);
+      };
       updateGameTextDiv = function(flag) {
+        var a;
         if (!flag) {
-          return _this.gameText.textContent = "Please wait for the other players...";
+          _this.gameText.textContent = "Please wait for the other players";
+          $(_this).triggerHandler({
+            type: "loadme",
+            loaderSymbols: ["0", "1", "2", "3", "4", "5", "6", "7"],
+            loaderRate: 100,
+            loaderIndex: 0
+          });
+          return a = 4;
         } else {
           if (_this.nextLevel === (_this.maxGameRounds - 1)) {
             return _this.gameText.textContent = "Last Round " + (_this.nextLevel + 1) + ": please make a guess. ";
@@ -223,7 +239,7 @@
         _this.currentGuess.setAttribute("cx", radius * Math.cos(_this.previous_angle));
         _this.currentGuess.setAttribute("cy", radius * Math.sin(_this.previous_angle));
         animatedElement = _this.circleCanvas.getElementsByTagName('animate');
-        animatedElement[0].setAttribute("dur", "1s");
+        animatedElement[0].setAttribute("dur", "0.3s");
         animatedElement[0].beginElement();
         if (!_this.flip && _this.instructionIndex === 1) {
           _this.instructionsText.textContent += "\n\rThe small red circle at the selected position shows your last quess.\n\r";
@@ -240,17 +256,15 @@
             _this.nextLevel++;
             updateGameTextDiv(false);
             removeListeners();
-            if (_this.nextLevel < _this.maxGameRounds) {
-              return $(_this).triggerHandler({
-                type: "queryServer",
-                var1: 'Howdy',
-                information: 'I could pass something here also'
-              });
-            } else {
-              return $(_this).triggerHandler({
-                type: "stopGame"
-              });
-            }
+            return $(_this).triggerHandler({
+              type: "queryServer",
+              var1: 'Howdy',
+              information: 'I could pass something here also'
+            });
+          } else {
+            return $(_this).triggerHandler({
+              type: "stopGame"
+            });
           }
         }
       };
@@ -269,7 +283,7 @@
         return _this.circleCanvas.addEventListener('click', ccMouseClick, false);
       };
       next = function() {
-        if (_this.buttonNext.innerHTML === "Start" && _this.gameMode !== false) {
+        if (_this.buttonNextText.innerHTML === "Start" && _this.gameMode !== true) {
           _this.gameMode = true;
           return $(_this).triggerHandler({
             type: "startGame"
@@ -283,16 +297,17 @@
           if (_this.instructionIndex === 2) {
             _this.circleCanvas.onwheel = ccMouseWheel;
             _this.circleCanvas.onmousewheel = ccMouseWheel;
-          }
-          if (_this.isFirefox) {
-            _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
+            if (_this.isFirefox) {
+              _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
+            }
           }
           _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
           _this.buttonNext.disabled = true;
           _this.buttonPrevious.disabled = false;
           if (_this.instructionIndex === 3) {
             _this.rankText.textContent = "Your Rank: 1 (25)";
-            _this.buttonNext.innerHTML = "Start";
+            _this.buttonNextText.innerHTML = "Start";
+            _this.buttonNext.innerHTML = "<text class=\"nextbuttontext\">Start</text>.";
             _this.buttonNext.disabled = false;
           }
           return resetZoom(true);
@@ -302,7 +317,7 @@
         resetZoom(true);
         removeListeners();
         _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
-        _this.gameTextDiv.setAttribute("style", "height:100%;width:20%;float:left;");
+        _this.gameTextDiv.setAttribute("style", "height:100%;width:20%;float:left;padding-left:10px;");
         updateGameTextDiv(false);
         _this.buttonNext.parentNode.removeChild(_this.buttonNext);
         _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
@@ -323,7 +338,7 @@
         _this.flip = 0;
         _this.gameMode = false;
         _this.buttonPrevious.disabled = false;
-        _this.buttonNext.innerHTML = "Next";
+        _this.buttonNextText.innerHTML = "Next";
         _this.instructionIndex--;
         if (_this.instructionIndex <= 0) {
           _this.instructionIndex = 0;
@@ -339,10 +354,10 @@
         }
       };
       initInstructions = function() {
-        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "that we have randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your guess is to the hidden point, compared to others.\n\r" + "The game consists of 10 rounds. During each round, you have to make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices.\n\r" + "At the beginning of each round, you will be informed of your relative ranking. " + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Conversely, if you are farthest from the point, you rank last.\n\r" + "Click \"Next\" for a quick practice.";
+        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "that we have randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your final guess is to the hidden point, compared to others.\n\r" + "The game consists of 10 rounds. During each round, you have to make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices.\n\r" + "At the beginning of each round, you will be informed of your relative ranking. " + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Conversely, if you are farthest from the point, you rank last.\n\r" + "Your starting rank for round 1 will be determined randomly.\n\r" + "Click \"Next\" for a quick practice.";
         _this.instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ...";
         _this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel. " + "The zoom is with respect to the current position of the green line.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
-        _this.instructionVector[3] = "Finally, your current rank is displayed above the circle. In the example shown " + "the number in the brackets shows the total number " + "of players. Your rank will be updated at the end of each round, after all players " + " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle, in which case random rank information will be presented. " + "Alternatively, you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game.";
+        _this.instructionVector[3] = "Finally, your current rank is displayed above the circle. In the example shown, " + "the number in the brackets shows the total number " + "of players. Your rank will be updated at the end of each round, after all players " + " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle, in which case random rank information will be presented. " + "Alternatively, you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game.";
         return _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
       };
       addListeners = function() {
@@ -375,7 +390,8 @@
         console.log(send(_this.serverURL, "announce"));
         $(_this).on("queryServer", queryRound);
         $(_this).on("startGame", startGame);
-        return $(_this).on("stopGame", stopGame);
+        $(_this).on("stopGame", stopGame);
+        return $(_this).on("loadme", loadme);
       };
       return init();
     };

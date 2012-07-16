@@ -40,7 +40,7 @@ public class ClientLog {
 		this.reg_begin = reg_begin;
 		this.reg_end = reg_end;
 		this.currentRound = 0;
-		for (int i=0; i<GUI.gameRounds; i++)
+		for (int i=0; i<(GUI.gameRounds+1); i++)
 			gameRounds.add(new gameRound());
 	}
 	

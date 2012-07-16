@@ -1,0 +1,11 @@
+1. Improve functionality when moving to the next instruction
+step. People don't seem to get that they should click on "Next".
+
+2. Make explicit that the hidden point is on the circle.
+
+3. Make the instructions shorter.
+
+Arda:     1
+Gabriel:  2
+Andrea:   3
+

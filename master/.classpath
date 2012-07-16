@@ -9,5 +9,8 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/javax.servlet-api-3.0.1.jar"/>
 	<classpathentry kind="con" path="org.dyno.visual.swing.VS_LIBRARY/layoutext"/>
+	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1.jar"/>
+	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1-sources.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>

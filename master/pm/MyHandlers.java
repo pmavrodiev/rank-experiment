@@ -90,13 +90,15 @@ public class MyHandlers {
 								int myRank = GUI.currentRanks.get(oldClient.id);										
 								oldClient.getRound(requestedRound).setRank(myRank);
 								response.getWriter().print("urrank "+requestedRound + " " + myRank +"("+GUI.clients.size()+")");
-								String clientTime = dateFormat.format(new Date());								
-								/*round requestedRound begins*/
-								oldClient.initNewRound(clientTime, requestedRound);
-								GUI.updateGUITable(oldClient,GUI.ROUND_BEGIN);								
-								if (requestedRound == 0) {								
-									oldClient.reg_end = clientTime;
-									GUI.updateGUITable(oldClient,GUI.REG_END);
+								if (requestedRound < GUI.gameRounds) {
+									String clientTime = dateFormat.format(new Date());								
+									/*round requestedRound begins*/
+									oldClient.initNewRound(clientTime, requestedRound);
+									GUI.updateGUITable(oldClient,GUI.ROUND_BEGIN);								
+									if (requestedRound == 0) {								
+										oldClient.reg_end = clientTime;
+										GUI.updateGUITable(oldClient,GUI.REG_END);
+									}
 								}
 
 							}
@@ -143,26 +145,5 @@ public class MyHandlers {
 			}
 		}
 	}
-	/*
-	public static class BOSS extends AbstractHandler {
-		public static int myport = 8000;
-
-		public void handle(String target,Request baseRequest,HttpServletRequest request,
-				HttpServletResponse response) throws IOException, ServletException {
-
-			if (baseRequest.getConnection().getConnector().getPort() == myport) {
-				log.println("I am boss handler");
-
-				response.setHeader("Access-Control-Allow-Origin", "*");				
-				response.setContentType("text/html;charset=utf-8");
-				response.setStatus(HttpServletResponse.SC_OK);
-				baseRequest.setHandled(true);
-				String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
-				log.println("Boss connected from "+ip);
-				response.getWriter().println("<h1>You are a boss from "+ip+"</h1>");
-			}
-		}
-	}
-	 */
-
+	
 }

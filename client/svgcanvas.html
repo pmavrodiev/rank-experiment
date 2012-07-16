@@ -15,8 +15,8 @@
 	</div>
 	
 	<div id="gameTextDiv" style="height:100%;width:0.5%;float:left;">
-		<textarea id="gameText" readonly="readonly" style="height:100%;width:100%;float:left;"></textarea>
-		
+		<span id="gameText"></span>
+		<span id="textareaspan" class="websymbols"></span>		
 	</div>
 	
 	<div id="circleCanvasDiv" style="height:100%;width:60%;float:left;">
@@ -31,7 +31,7 @@
               stroke-width="4"></circle>
              <circle id="currentGuess" cx="0" cy="345" r="4" stroke="red" fill="none"
              stroke-width="4">
-               <animate attributeName="r" to="18" dur="0s" repeatCount="3"></animate>
+               <animate attributeName="r" to="10" dur="0s" repeatCount="3"></animate>
             </circle>
             <line id="angleLine" x1="0" y1="0" x2="0" y2="345" stroke="green" fill="none" stroke-width="2">
             </line>	
@@ -47,10 +47,13 @@
 		</div>
 		<div style="height:30%;width:100%;float:left;">
 			<div style="height:100%;width:50%;float:left;">
-				<button id="previous" type="button">Previous</button>
-			</div>
-			<div style="height:100%;width:50%;float:left">
-     			<button id="next" type="button">Next</button>
+     			<button id="previous" class="prevbutton" type="button">
+     			<span class="prevbuttontext"><</span>Prev</button>
+     			
+			</div>			
+			<div style="height:100%;width:50%;float:right">			   
+     			<button id="next" class="nextbutton" type="button">
+     				<text class="nextbuttontext">Next</text>></button>
 			</div>
 		</div
 

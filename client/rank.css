@@ -1,11 +1,182 @@
+
 * {
-padding: 0;
-margin: 0;
+ font-size: 20px;
 }
+
 
 html, body {
 height: 100%;
 }
+
+
+/*animations*/
+
+@keyframes radioactivebuttons 
+{
+	from {background-color:#0000FF;
+	box-shadow: 0 0 9px #333;}
+	50% {
+		background-color: #3C3CFC;
+		box-shadow:0 0 18px #3C3CFC;
+	}
+	to {background-color:#0000FF;}
+}
+
+@-moz-keyframes radioactivebuttons 
+{
+    from {background-color:#0000FF;
+	box-shadow: 0 0 9px #333;}
+	50% {
+		background-color: #3C3CFC;
+		box-shadow:0 0 18px #3C3CFC;
+	}
+	to {background-color:#0000FF;}
+}
+
+@-webkit-keyframes radioactivebuttons
+{
+	from {background-color:#0000FF;
+	box-shadow: 0 0 9px #333;}
+	50% {
+		background-color: #3C3CFC;
+		box-shadow:0 0 18px #3C3CFC;
+	}
+	to {background-color:#0000FF;}
+}
+
+
+
+@font-face {
+    font-family: 'WebSymbolsRegular';
+    src: url('fonts/WebSymbols-Font-Pack/websymbols-regular-webfont.eot');
+    src: url('fonts/WebSymbols-Font-Pack/websymbols-regular-webfont.eot?#iefix') format('embedded-opentype'),
+        url('fonts/WebSymbols-Font-Pack/websymbols-regular-webfont.woff') format('woff'),
+        url('fonts/WebSymbols-Font-Pack/websymbols-regular-webfont.ttf') format('truetype'),
+        url('fonts/WebSymbols-Font-Pack/websymbols-regular-webfont.svg#WebSymbolsRegular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.websymbols {
+   font-family: 'WebSymbolsRegular', cursive;
+   font-size: 20px;
+}
+
+
+.nextbutton {
+	padding: 20px 0px 20px 50px;
+	position:relative;
+	font-family: 'WebSymbolsRegular', cursive;
+	border-radius:10px;
+    color: white;
+    text-decoration:none;
+    font-weight: bold;
+    font-size: 20px;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.5);   
+    line-height: 0px;
+    background-color: blue; 
+    -webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	cursor: hand;
+	cursor:pointer;
+	animation-name: radioactivebuttons;
+	animation-duration: 0.7s;
+	animation-iteration-count: infinite;
+	-webkit-animation-name: radioactivebuttons;
+	-webkit-animation-duration: 0.7s;
+	-webkit-animation-iteration-count: infinite;
+	-moz-animation-name: radioactivebuttons;
+	-moz-animation-duration: 0.7s;
+	-moz-animation-iteration-count: infinite;
+}
+
+.nextbuttontext {
+	right: 40px;
+    font-size: 20px;
+    color: white;
+    line-height: 0px;
+    font-weight: bold;    
+    position:relative;
+    font-family: "Myriad Pro", "Trebuchet MS", sans-serif;  
+    display: block;
+}
+
+
+.nextbutton:hover{
+	-webkit-animation-name: off;
+    animation-name: off;
+	-moz-animation-name: off;
+    box-shadow: 
+        0px 1px 15px rgba(255,255,255,1.8) inset, 
+        1px 1px 5px rgba(255,255,255,1.8); 
+}
+
+.nextbutton:disabled {
+   opacity:0.3;
+  -webkit-animation-name: off;
+  animation-name: off;
+  -moz-animation-name: off;
+   box-shadow: 
+        0px 0px 0px rgba(255,255,255,1.8);     
+}
+
+
+
+
+.prevbuttontext {	
+	font-family: 'WebSymbolsRegular', cursive;
+    color: white;    
+    font-weight: bold;
+    font-size: 20px;   
+    line-height: 0px;
+    padding-right: 15px;
+}
+
+
+.prevbutton {
+	padding: 20px 11px 20px 12px;
+	border-radius:10px;
+    background-color: blue;	
+    font-size: 20px;
+    text-decoration: none;
+    color: white;
+    line-height: 0px;
+    font-weight: bold;
+    position:relative;
+    font-family: "Myriad Pro", "Trebuchet MS", sans-serif;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+    display: block;    
+    -webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	cursor: hand;
+
+}
+
+
+.prevbutton:hover{
+    box-shadow: 
+        0px 1px 15px rgba(255,255,255,1.8) inset, 
+        1px 1px 5px rgba(255,255,255,1.8); 
+}
+
+.prevbutton:disabled {
+  opacity:0.3;
+   box-shadow: 
+        0px 0px 0px rgba(255,255,255,1.8);   
+}
+
+
+
+
+
 
 textarea { 
     border-style: none; 

@@ -4,12 +4,14 @@ class window.rank_experiment
     @windowWidth = window.innerWidth
     @windowHeight = window.innerHeight
     @buttonNext = document.getElementById("next")
+    @buttonNextText = document.getElementsByClassName("nextbuttontext")[0]
     @buttonPrevious = document.getElementById("previous")
     @instructionsText = document.getElementById("instructions")
     @circleCanvasDiv = document.getElementById("circleCanvasDiv")
     @instructionsDiv = document.getElementById("instructionsDiv")
     @gameTextDiv = document.getElementById("gameTextDiv")
     @gameText = document.getElementById("gameText")
+    @gameTextWebSymbols = document.getElementsByClassName("websymbols")[0]
     #drawing elements
     @compositeG=document.getElementById("svgCanvas") 
     @circleCanvas=document.getElementById("circleCanvas")
@@ -105,16 +107,30 @@ class window.rank_experiment
       if srvResponse.indexOf("urrank") != -1        
         addListeners()
         @currentRank = srvResponse.split(" ")[2]
-        console.log("My rank for " + (@nextLevel+1) + " is: " + @currentRank)
+        #the +1 here is just because humans are used to indexing from 1.
+        console.log("My rank at the beginning of round " + (@nextLevel+1) + " is: " + @currentRank)
         updateRankInfo()
         updateGameTextDiv(true)                
         return true
       
       setTimeout((-> queryRound(data)),3000)
    
+   loadme = (data) =>
+      @gameTextWebSymbols.innerHTML = data.loaderSymbols[data.loaderIndex]
+      data.loaderIndex = data.loaderIndex  < data.loaderSymbols.length - 1 ? data.loaderIndex + 1
+      setTimeout(loadme(data), data.loaderRate)
+      
+   
    updateGameTextDiv = (flag) =>
-      if not flag
-       @gameText.textContent = "Please wait for the other players..."    
+      if not flag             
+        @gameText.textContent = "Please wait for the other players"        
+        $(this).triggerHandler(
+           type:"loadme",
+           loaderSymbols:["0", "1", "2", "3", "4", "5", "6", "7"],
+           loaderRate:100,
+           loaderIndex:0       
+        )
+        a=4
       else
         if @nextLevel == (@maxGameRounds-1)
             @gameText.textContent = "Last Round " + (@nextLevel+1) + ": please make a guess. "
@@ -244,7 +260,7 @@ class window.rank_experiment
       @currentGuess.setAttribute("cx",radius*Math.cos(@previous_angle))
       @currentGuess.setAttribute("cy",radius*Math.sin(@previous_angle))
       animatedElement = @circleCanvas.getElementsByTagName('animate')
-      animatedElement[0].setAttribute("dur","1s")  
+      animatedElement[0].setAttribute("dur","0.3s")  
       animatedElement[0].beginElement()
       
       if !@flip and @instructionIndex == 1
@@ -264,13 +280,12 @@ class window.rank_experiment
             #show wait for all players
             updateGameTextDiv(false)
             removeListeners()
-            if @nextLevel < @maxGameRounds
-              $(this).triggerHandler(
+            $(this).triggerHandler(
                 type:"queryServer",
                 var1:'Howdy',
                 information:'I could pass something here also'
-              )
-            else #stop game
+            )
+          else #stop game
               $(this).triggerHandler(type:"stopGame")
     
 
@@ -290,7 +305,7 @@ class window.rank_experiment
       
         
    next = () =>
-        if @buttonNext.innerHTML == "Start" and @gameMode != false
+        if @buttonNextText.innerHTML == "Start" and @gameMode != true
           @gameMode = true
           $(this).triggerHandler(type:"startGame")
         else if @instructionIndex < 3
@@ -301,16 +316,18 @@ class window.rank_experiment
             if @instructionIndex == 2
               @circleCanvas.onwheel = ccMouseWheel #future browsers
               @circleCanvas.onmousewheel = ccMouseWheel #most current browsers
-            if (@isFirefox)
-              @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
+              if (@isFirefox)
+                @circleCanvas.addEventListener("DOMMouseScroll",ccMouseWheel,false)
    
             @instructionsText.textContent = @instructionVector[@instructionIndex]      
             @buttonNext.disabled=true
             @buttonPrevious.disabled=false
       
             if @instructionIndex == 3   
-              @rankText.textContent = "Your Rank: 1 (25)"
-              @buttonNext.innerHTML = "Start"
+              @rankText.textContent = "Your Rank: 1 (25)"             
+              @buttonNextText.innerHTML = "Start"
+              @buttonNext.innerHTML = "<text class=\"nextbuttontext\">Start</text>."
+              
               @buttonNext.disabled=false
             
             resetZoom(true)
@@ -319,7 +336,7 @@ class window.rank_experiment
       resetZoom(true)
       removeListeners()
       @instructionsDiv.parentNode.removeChild(@instructionsDiv)            
-      @gameTextDiv.setAttribute("style","height:100%;width:20%;float:left;")        
+      @gameTextDiv.setAttribute("style","height:100%;width:20%;float:left;padding-left:10px;")        
       updateGameTextDiv(false)
       @buttonNext.parentNode.removeChild(@buttonNext)
       @buttonPrevious.parentNode.removeChild(@buttonPrevious)
@@ -330,17 +347,18 @@ class window.rank_experiment
         information:'I could pass something here also'
       )
       
-   stopGame = () =>
+    stopGame = () =>
       @gameMode = false
       updateGameTextDiv(true)   
       updateRankInfo()
       addListeners()
    
-   prev = () =>  
+    prev = () =>  
       @flip = 0
       @gameMode = false
-      @buttonPrevious.disabled=false  
-      @buttonNext.innerHTML = "Next"
+      @buttonPrevious.disabled=false
+      @buttonNextText.innerHTML = "Next"
+      #@buttonNext.innerHTML = "Next"
       @instructionIndex--
       if @instructionIndex<=0 
         @instructionIndex=0
@@ -360,13 +378,14 @@ class window.rank_experiment
       "The purpose of the game is to find out the location of a hidden point " +
       "that we have randomly positioned on the blue circle to the left."+
       "You will compete with other players, and your performance, as well as reward, "+
-      "will be based on how close your guess is to the hidden point, compared to others.\n\r"+
+      "will be based on how close your final guess is to the hidden point, compared to others.\n\r"+
       "The game consists of 10 rounds. During each round, you have to make a guess "+
       "by moving the green line around the circle and clicking on a desired position. "+
       "A round finishes when all players have made their choices.\n\r"+
       "At the beginning of each round, you will be informed of your relative ranking. "+
       "Your rank is 1 if you are the player currently closest to the hidden point. "+
-      "Conversely, if you are farthest from the point, you rank last.\n\r" + 
+      "Conversely, if you are farthest from the point, you rank last.\n\r" +
+      "Your starting rank for round 1 will be determined randomly.\n\r" +  
       "Click \"Next\" for a quick practice."
       
       @instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ..."
@@ -375,7 +394,7 @@ class window.rank_experiment
                               "The zoom is with respect to the current position of the green line.\n\r"+
                               "Try zooming in and out a few times to get used to this functionality ... "
       
-      @instructionVector[3] = "Finally, your current rank is displayed above the circle. In the example shown "+
+      @instructionVector[3] = "Finally, your current rank is displayed above the circle. In the example shown, "+
                               "the number in the brackets shows the total number "+
                               "of players. Your rank will be updated at the end of each round, after all players "+ 
                               " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r"+
@@ -425,9 +444,7 @@ class window.rank_experiment
       $(this).on("queryServer",queryRound)
       $(this).on("startGame",startGame)
       $(this).on("stopGame",stopGame)
-      
-      
-   
+      $(this).on("loadme",loadme)   
     
    init()
 
