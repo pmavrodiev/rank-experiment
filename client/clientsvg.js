@@ -23,6 +23,16 @@
       this.currentGuess = document.getElementById("currentGuess");
       this.angleLine = document.getElementById("angleLine");
       this.rankText = document.getElementById("rankText");
+      /* used to display a spinning waiting symbol when waiting for other players
+      */
+
+      this.loaderIndex = 0;
+      this.loaderSymbols = ["0", "1", "2", "3", "4", "5", "6", "7"];
+      this.loaderRate = 100;
+      this.loadmetimer = null;
+      /*
+      */
+
       this.maxGameRounds = 0;
       this.instructionVector = new Array();
       this.instructionIndex = 0;
@@ -35,7 +45,7 @@
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
-      this.serverURL = "http://129.132.133.54:8080/";
+      this.serverURL = "http://192.168.1.161:8080/";
       this.registered = false;
       this.flip = 0;
       if (this.isFirefox) {
@@ -63,8 +73,10 @@
         processServerResponse = function(response, status) {
           if (status === "error") {
             alert("Cannot connect to server");
+            clearTimeout(_this.loadmetimer);
           } else if (status !== "success") {
             alert("Network problems " + status);
+            clearTimeout(_this.loadmetimer);
           } else {
             if (response.responseText.indexOf("announced") !== -1) {
               _this.registered = true;
@@ -109,30 +121,39 @@
           return queryRound(data);
         }), 3000);
       };
-      loadme = function(data) {
-        var _ref;
-        _this.gameTextWebSymbols.innerHTML = data.loaderSymbols[data.loaderIndex];
-        data.loaderIndex = (_ref = data.loaderIndex < data.loaderSymbols.length - 1) != null ? _ref : data.loaderIndex + 1;
-        return setTimeout(loadme(data), data.loaderRate);
+      loadme = function() {
+        _this.gameTextWebSymbols.innerHTML = _this.loaderSymbols[_this.loaderIndex];
+        if (_this.loaderIndex < _this.loaderSymbols.length - 1) {
+          _this.loaderIndex = _this.loaderIndex + 1;
+        } else {
+          _this.loaderIndex = 0;
+        }
+        return _this.loadmetimer = setTimeout(loadme, _this.loaderRate);
       };
       updateGameTextDiv = function(flag) {
         var a;
         if (!flag) {
+          _this.gameText.setAttribute("style", "");
+          _this.gameTextWebSymbols.setAttribute("class", "websymbols");
           _this.gameText.textContent = "Please wait for the other players";
           $(_this).triggerHandler({
-            type: "loadme",
-            loaderSymbols: ["0", "1", "2", "3", "4", "5", "6", "7"],
-            loaderRate: 100,
-            loaderIndex: 0
+            type: "loadme"
           });
           return a = 4;
         } else {
+          clearTimeout(_this.loadmetimer);
+          _this.gameTextWebSymbols.innerHTML = "";
+          _this.gameText.setAttribute("style", "font-weight:bold;");
+          _this.gameTextWebSymbols.setAttribute("class", "");
           if (_this.nextLevel === (_this.maxGameRounds - 1)) {
-            return _this.gameText.textContent = "Last Round " + (_this.nextLevel + 1) + ": please make a guess. ";
+            _this.gameText.textContent = "Last Round " + (_this.nextLevel + 1);
+            return _this.gameTextWebSymbols.textContent = ": please make a guess. ";
           } else if (_this.nextLevel === _this.maxGameRounds) {
+            _this.gameText.setAttribute("style", "");
             return _this.gameText.textContent = "Thank you for playing the game. You can close your browser now.";
           } else {
-            return _this.gameText.textContent = "Round " + (_this.nextLevel + 1) + ": please make a guess. ";
+            _this.gameText.textContent = "Round " + (_this.nextLevel + 1);
+            return _this.gameTextWebSymbols.textContent = ": please make a guess.";
           }
         }
       };
@@ -317,7 +338,7 @@
         resetZoom(true);
         removeListeners();
         _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
-        _this.gameTextDiv.setAttribute("style", "height:100%;width:20%;float:left;padding-left:10px;");
+        _this.gameTextDiv.setAttribute("style", "height:100%;width:20%;float:left;padding-left:10px;padding-top:10px");
         updateGameTextDiv(false);
         _this.buttonNext.parentNode.removeChild(_this.buttonNext);
         _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);

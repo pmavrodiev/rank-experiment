@@ -23,6 +23,12 @@ class window.rank_experiment
     @rankText=document.getElementById("rankText")   
     
     #game-related stuff
+    ### used to display a spinning waiting symbol when waiting for other players ###
+    @loaderIndex = 0 
+    @loaderSymbols=["0", "1", "2", "3", "4", "5", "6", "7"]
+    @loaderRate=100
+    @loadmetimer=null
+    ### ###
     @maxGameRounds = 0 #obtained from the server upon announcement
     @instructionVector = new Array()
     @instructionIndex = 0
@@ -39,7 +45,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://129.132.133.54:8080/"
+    @serverURL = "http://192.168.1.161:8080/"
     @registered = false
      
     
@@ -70,8 +76,10 @@ class window.rank_experiment
       processServerResponse = (response, status) =>
         if status == "error"
           alert("Cannot connect to server")
+          clearTimeout(@loadmetimer)
         else if status != "success"
           alert("Network problems "+status)
+          clearTimeout(@loadmetimer)
         else #success
           if response.responseText.indexOf("announced") != -1
             @registered = true
@@ -115,29 +123,41 @@ class window.rank_experiment
       
       setTimeout((-> queryRound(data)),3000)
    
-   loadme = (data) =>
-      @gameTextWebSymbols.innerHTML = data.loaderSymbols[data.loaderIndex]
-      data.loaderIndex = data.loaderIndex  < data.loaderSymbols.length - 1 ? data.loaderIndex + 1
-      setTimeout(loadme(data), data.loaderRate)
+   loadme = () =>
+      @gameTextWebSymbols.innerHTML = @loaderSymbols[@loaderIndex]      
+      if @loaderIndex < @loaderSymbols.length-1
+        @loaderIndex = @loaderIndex + 1
+      else
+        @loaderIndex = 0
+      @loadmetimer=setTimeout(loadme, @loaderRate)
       
    
    updateGameTextDiv = (flag) =>
-      if not flag             
+      if not flag
+        #reset style and class to default
+        @gameText.setAttribute("style","")
+        @gameTextWebSymbols.setAttribute("class","websymbols")
         @gameText.textContent = "Please wait for the other players"        
         $(this).triggerHandler(
-           type:"loadme",
-           loaderSymbols:["0", "1", "2", "3", "4", "5", "6", "7"],
-           loaderRate:100,
-           loaderIndex:0       
+           type:"loadme",               
         )
         a=4
       else
+        clearTimeout(@loadmetimer)
+        @gameTextWebSymbols.innerHTML = ""
+        @gameText.setAttribute("style","font-weight:bold;")
+        @gameTextWebSymbols.setAttribute("class","")
         if @nextLevel == (@maxGameRounds-1)
-            @gameText.textContent = "Last Round " + (@nextLevel+1) + ": please make a guess. "
+            @gameText.textContent = "Last Round " + (@nextLevel+1)
+            @gameTextWebSymbols.textContent = ": please make a guess. "
         else if @nextLevel == @maxGameRounds
+            @gameText.setAttribute("style","")
             @gameText.textContent = "Thank you for playing the game. You can close your browser now."
-        else
-            @gameText.textContent = "Round " + (@nextLevel+1) + ": please make a guess. "
+        else            
+            @gameText.textContent = "Round " + (@nextLevel+1)
+            @gameTextWebSymbols.textContent = ": please make a guess."
+            
+          
               
    
    updateRankInfo = () =>
@@ -326,8 +346,7 @@ class window.rank_experiment
             if @instructionIndex == 3   
               @rankText.textContent = "Your Rank: 1 (25)"             
               @buttonNextText.innerHTML = "Start"
-              @buttonNext.innerHTML = "<text class=\"nextbuttontext\">Start</text>."
-              
+              @buttonNext.innerHTML = "<text class=\"nextbuttontext\">Start</text>."              
               @buttonNext.disabled=false
             
             resetZoom(true)
@@ -336,7 +355,7 @@ class window.rank_experiment
       resetZoom(true)
       removeListeners()
       @instructionsDiv.parentNode.removeChild(@instructionsDiv)            
-      @gameTextDiv.setAttribute("style","height:100%;width:20%;float:left;padding-left:10px;")        
+      @gameTextDiv.setAttribute("style","height:100%;width:20%;float:left;padding-left:10px;padding-top:10px")        
       updateGameTextDiv(false)
       @buttonNext.parentNode.removeChild(@buttonNext)
       @buttonPrevious.parentNode.removeChild(@buttonPrevious)
