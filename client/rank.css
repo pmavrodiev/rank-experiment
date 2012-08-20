@@ -69,6 +69,7 @@ height: 100%;
 	font-family: 'WebSymbolsRegular', cursive;
 	border-radius:10px;
     color: white;
+    size: auto
     text-decoration:none;
     font-weight: bold;
     font-size: 20px;
@@ -110,9 +111,11 @@ height: 100%;
 	-webkit-animation-name: off;
     animation-name: off;
 	-moz-animation-name: off;
+	/*
     box-shadow: 
         0px 1px 15px rgba(255,255,255,1.8) inset, 
-        1px 1px 5px rgba(255,255,255,1.8); 
+        1px 1px 5px rgba(255,255,255,1.8);
+    */ 
 }
 
 .nextbutton:disabled {
@@ -162,21 +165,20 @@ height: 100%;
 
 
 .prevbutton:hover{
+	/*
     box-shadow: 
         0px 1px 15px rgba(255,255,255,1.8) inset, 
-        1px 1px 5px rgba(255,255,255,1.8); 
+        1px 1px 5px rgba(255,255,255,1.8);
+    */ 
 }
 
 .prevbutton:disabled {
   opacity:0.3;
+  /*
    box-shadow: 
-        0px 0px 0px rgba(255,255,255,1.8);   
+        0px 0px 0px rgba(255,255,255,1.8);
+  */   
 }
-
-
-
-
-
 
 textarea { 
     border-style: none; 

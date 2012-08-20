@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Enumeration;
 
 
 import javax.servlet.ServletException;
@@ -20,6 +21,33 @@ public class MyHandlers {
 		public static int myport = 8080;
 		public static DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 		public static Log log = new Log(true);
+
+		private String getUserName(HttpServletRequest request) throws IOException {
+			Enumeration<String> headerNames = request.getHeaderNames();
+			String customIdentity="";
+			while (headerNames.hasMoreElements()) {
+				String headerName = headerNames.nextElement();
+				if (headerName.equals("Username")) {
+					customIdentity = request.getHeader(headerName);
+					break;
+				}									
+			}
+			return customIdentity;			
+		}
+
+		
+		private String getHex(HttpServletRequest request) throws IOException {
+			Enumeration<String> headerNames = request.getHeaderNames();
+			String customIdentity="";
+			while (headerNames.hasMoreElements()) {
+				String headerName = headerNames.nextElement();
+				if (headerName.equals("Hex")) {
+					customIdentity = request.getHeader(headerName);
+					break;
+				}									
+			}
+			return customIdentity;			
+		}
 
 		private String getPOSTpayLoad(HttpServletRequest request) throws IOException {
 			BufferedReader reader = request.getReader();
@@ -38,14 +66,15 @@ public class MyHandlers {
 			if (baseRequest.getConnection().getConnector().getPort() == myport) {
 				response.setHeader("Access-Control-Allow-Origin", "*");
 				response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-				response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+				response.setHeader("Access-Control-Allow-Headers", "Content-Type,Hex,Username");
 				response.setContentType("text/html;charset=utf-8");			
 				response.setStatus(HttpServletResponse.SC_OK);
 				if (baseRequest.getMethod().equals("POST")) {
 					/*Get the POST payload*/
 					String payload = getPOSTpayLoad(request);
+					String hex = getHex(request);					
 					String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
-					log.print("Client " + ip + " said: " + payload);
+					log.print("Client " + hex + " said: " + payload);
 					if (payload.equals("announce\n")) {						
 						if (GUI.finished) {
 							response.getWriter().print("finished");
@@ -58,8 +87,8 @@ public class MyHandlers {
 							 *this is possible if a user starts the instruction phase,
 							 *then closes the web page and reloads it again. In this way,
 							 *no "ready" message will have been received by the server for
-							 *this particular user.*/
-							ClientLog alreadyAnnounced = GUI.clients.get(ip);						
+							 *this client.*/
+							ClientLog alreadyAnnounced = GUI.clients.get(hex);						
 							if (alreadyAnnounced != null) {
 								log.println("Client already announced. Announcement time updated.\n");
 								/*update announcement time*/							
@@ -70,46 +99,62 @@ public class MyHandlers {
 
 							else {
 								/*add the client to the known clients*/
-								log.println("Client announced from "+ip+"\n");							
-								ClientLog newClient = new ClientLog(ip,dateFormat.format(new Date()),null,GUI.clients.size());	
-								GUI.clients.put(ip, newClient);
-								GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client
+								log.println("Client announced from "+hex+"\n");							
+								ClientLog newClient = new ClientLog(hex,dateFormat.format(new Date()),null,GUI.clients.size(),UniformDistribution.pi_uniform());
+								synchronized (this) {									
+									GUI.clients.put(hex, newClient);
+									GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client
+									GUI.activeClients++;
+								}
 								response.getWriter().print("maxrounds "+GUI.gameRounds);
 							}
 						}
 					}
 					else if (payload.indexOf("rank") != -1) {
-						//get the second parameter of the payload which is the round the client wants to start
-						//e.g. round 0
-						//if the round can be started, update Round_X_BEGIN
-						String[] tokenize_payload = payload.split("\\s");
-						ClientLog oldClient = GUI.clients.get(ip);
-						try {
-							Integer requestedRound = new Integer(tokenize_payload[1]);
-							if (GUI.gameRoundsStates[requestedRound]) {//rank started?
-								int myRank = GUI.currentRanks.get(oldClient.id);										
-								oldClient.getRound(requestedRound).setRank(myRank);
-								response.getWriter().print("urrank "+requestedRound + " " + myRank +"("+GUI.clients.size()+")");
-								if (requestedRound < GUI.gameRounds) {
-									String clientTime = dateFormat.format(new Date());								
-									/*round requestedRound begins*/
-									oldClient.initNewRound(clientTime, requestedRound);
-									GUI.updateGUITable(oldClient,GUI.ROUND_BEGIN);								
-									if (requestedRound == 0) {								
-										oldClient.reg_end = clientTime;
-										GUI.updateGUITable(oldClient,GUI.REG_END);
-									}
+						/*check if the client is legit, i.e. has already announced himself*/
+						ClientLog alreadyAnnounced = GUI.clients.get(hex);						
+						if (alreadyAnnounced != null) {
+							/*get the second parameter of the payload which is the round 
+							 * the client wants to start, e.g. round 0	
+							 * if the round can be started, update Round_X_BEGIN*/
+							String[] tokenize_payload = payload.split("\\s");
+							ClientLog oldClient = GUI.clients.get(hex);
+							String username = getUserName(request);asd
+							try {
+								Integer requestedRound = new Integer(tokenize_payload[1]);
+								if (requestedRound < GUI.next_round-1) {
+									response.getWriter().print("roundfinished");
+									baseRequest.setHandled(true);
+									return;
 								}
+								if (GUI.gameRoundsStates[requestedRound]) {//game round started?
+									int myRank = GUI.currentRanks.get(oldClient.id);
+									double initialOffsetEstimate = (GUI.currentEstimates.get(oldClient.id)+oldClient.personalOffset)*Math.PI/180; //in radians									
+									oldClient.getRound(requestedRound).setRank(myRank);
+									if (requestedRound == 0)
+										response.getWriter().print("urrank "+requestedRound + " " + myRank +"("+GUI.activeClients+")" + " " + initialOffsetEstimate);
+									else
+										response.getWriter().print("urrank "+requestedRound + " " + myRank +"("+GUI.activeClients+")");
+									if (requestedRound < GUI.gameRounds) {
+										String clientTime = dateFormat.format(new Date());								
+										/*round requestedRound begins*/
+										oldClient.initNewRound(clientTime, requestedRound);
+										GUI.updateGUITable(oldClient,GUI.ROUND_BEGIN);								
+										if (requestedRound == 0) {								
+											oldClient.reg_end = clientTime;
+											GUI.updateGUITable(oldClient,GUI.REG_END);
+										}
+									}
 
+								}
+								else {
+									response.getWriter().print("wait "+requestedRound);
+								}
 							}
-							else {
-								response.getWriter().print("wait "+requestedRound);
+							catch (NumberFormatException e) {
+								response.getWriter().print("malformed request " + payload);
 							}
-						}
-						catch (NumberFormatException e) {
-							response.getWriter().print("malformed request " + payload);
-						}
-
+						} //if (alreadyAnnounced != null) 
 
 					}
 					else if (payload.indexOf("estimate") != -1 ) {
@@ -117,20 +162,22 @@ public class MyHandlers {
 						//estimate of 12.2348239 for round 1
 						//the time of receiving this is also the time for Round_X_END
 						String[] tokenize_payload = payload.split("\\s");
-						try {
-							response.getWriter().print("ok");
+						try {							
 							Integer estimateForRound = new Integer(tokenize_payload[1]);
 							Double clientEstimate = new Double(tokenize_payload[2]);
 							String clientTime = dateFormat.format(new Date());
 							/* sanity check */
 							if (!GUI.gameRoundsStates[estimateForRound]) {
-								log.println("Sanity check failed: Client " + ip +" submitted estimate for finished round.");
+								log.println("Sanity check failed: Client " + hex +" submitted estimate for finished round.");
+								response.getWriter().print("roundfinished");
 							}
-							/*update the round info for this client*/
-							ClientLog oldClient = GUI.clients.get(ip);
-							oldClient.updateRound(clientTime, clientEstimate, estimateForRound);
-							GUI.updateGUITable(oldClient,GUI.ROUND_END);
-
+							else {
+								response.getWriter().print("ok");
+								/*update the round info for this client*/
+								ClientLog oldClient = GUI.clients.get(hex);
+								oldClient.updateRound(clientTime, clientEstimate, estimateForRound);
+								GUI.updateGUITable(oldClient,GUI.ROUND_END);
+							}
 
 						}
 						catch (NumberFormatException e) {
@@ -145,5 +192,5 @@ public class MyHandlers {
 			}
 		}
 	}
-	
+
 }

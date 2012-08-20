@@ -38,10 +38,10 @@ public class GUI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	/*game related stuff*/
-	public static final double truth = 25.0; //in degrees
+	public static final double truth = 0.0; //in degrees
 	/*the mean of the normal distribution that generates the initial guesses is fixed to +90*/
-	public static final double mu = 90.0;
-	public static final double init_colllective_err = Math.pow(truth-mu,2.0); 
+	public static final double mu = 90.0*Math.PI/180; //in radians
+	//public static final double init_colllective_err = Math.pow(truth-mu,2.0); 
 	public static final double init_diversity = 0.0025;
 	public static final int gameRounds = 10;
 	public static int next_round = 0;
@@ -52,16 +52,16 @@ public class GUI extends JFrame {
 	public static final int ROUND_ESTIMATE=4;
 	public static final int ROUND_END=5;
 	public static final int RANK=6;
+	public static final int INIT_ESTIMATE=7;
 	public static boolean inprogress=false;
 	public static boolean finished = false;
-	/*maps initial estimate to rank*/
-	//public static HashMap<Double, Integer> initialEstimates;
-	/*maps current estimate to rank*/
-	public static HashMap<Integer, Integer> currentRanks; //id->rank
+	public static HashMap<Integer, Integer> currentRanks; //client id->rank
 	public static ArrayList<Double> currentEstimates;
 	//stores the initial states (=false) of each game round
 	public static boolean[] gameRoundsStates;	
 	public static  LinkedHashMap<String,ClientLog> clients;
+	/*active clients*/
+	public static int activeClients;
 	/*swing stuff*/
 	private static JPanel jPanel0;
 	private static JButton startstop;
@@ -85,6 +85,7 @@ public class GUI extends JFrame {
 		GUI.myServer = myServer;
 		/*game related stuff*/
 		clients = new LinkedHashMap<String,ClientLog>();
+		activeClients = 0;
 		gameRoundsStates = new boolean[gameRounds+1]; //+1 for the final dummy round, i.e. similar to the .end() iterator in stl containers
 		for (int i=0; i<(gameRounds+1);i++) gameRoundsStates[i]=false;
 		//clients = new Map<String,ClientLog>();
@@ -169,8 +170,8 @@ public class GUI extends JFrame {
 							for (int i=0; i<GUI.clients.size();i++) {
 								currentRanks.put(i, -1);
 								currentEstimates.add(WrappedGaussian.phi_wrapped(mu, Math.sqrt(init_diversity)));								
-							}	
-
+							}
+							updateGUITable(null, INIT_ESTIMATE);
 						} 
 						else { //not the very first round							
 							/*populate currentEstimates with data from the last round*/		
@@ -181,7 +182,21 @@ public class GUI extends JFrame {
 							while (itr.hasNext()) {
 								Map.Entry<String,ClientLog> el = itr.next();
 								ClientLog oldClient = el.getValue();
-								currentEstimates.set(i++, oldClient.getRound(next_round-1).getEstimateAsDouble());
+								/*Can we get the estimate of oldClient for this round?
+								 *If the client has submitted an estimate for next_round-2, but disconnected prior to sending 
+								 *a "rank" request for next_round-1 then no gameRound entity would be initialized,
+								 *hence the call oldClient.getRound(next_round-1) will segfault.*/
+								if (oldClient.getValidRound(next_round-1)) {
+									currentEstimates.set(i, oldClient.getRound(next_round-1).getInternalEstimateAsDouble());
+								}
+								else {
+									if (currentEstimates.get(i) != -1.0) { //client not already invalidated
+										GUI.activeClients--; //this guys is out
+										oldClient.inValidate();
+										currentEstimates.set(i, -1.0); //set some gatekeeping value
+									}
+								}
+								i++;							
 							}
 						}
 						computeRanks();
@@ -199,7 +214,7 @@ public class GUI extends JFrame {
 						}
 						updateGUITable(null, RANK);
 					} //end if (next_round<gameRounds
-					
+
 
 				}
 			}
@@ -238,8 +253,12 @@ public class GUI extends JFrame {
 			DefaultTableModel dataModel = new 	DefaultTableModel();
 			logtable = new JTable(dataModel);
 			/*create columns*/
-			dataModel.addColumn("Client");dataModel.addColumn("RegBegin");dataModel.addColumn("RegEnd");
+			dataModel.addColumn("Client");
+			dataModel.addColumn("Offset");
+			dataModel.addColumn("RegBegin");
+			dataModel.addColumn("RegEnd");
 			dataModel.addColumn("Initial Rank");
+			dataModel.addColumn("Initial Estimate");
 
 			for (int i=0; i<gameRounds; i++) {
 				String c = "Round_" + (i+1) + "_BEGIN"; 
@@ -248,7 +267,7 @@ public class GUI extends JFrame {
 				String c4 = "Round_" + (i+1) + "_END";
 				dataModel.addColumn(c);	dataModel.addColumn(c2);dataModel.addColumn(c3);dataModel.addColumn(c4);				
 			}
-			for (int i=0; i<(4+4*gameRounds); i++) 
+			for (int i=0; i<(6+4*gameRounds); i++) 
 				logtable.getColumnModel().getColumn(i).setPreferredWidth(120);
 
 			logtable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF );  
@@ -341,47 +360,68 @@ public class GUI extends JFrame {
 	public static void updateGUITable(ClientLog newClient,int state) {
 		DefaultTableModel model = (DefaultTableModel) getLogTable().getModel();
 		if (state == ANNOUNCE) {
-			model.addRow(new Object[] {newClient.client_ip,newClient.reg_begin});
+			model.addRow(new Object[] {newClient.client_ip,newClient.personalOffset,newClient.reg_begin});
 		}
 		else if (state == RE_ANNOUNCE) {
 			/*The newClient parameter is not really new in this case. 
 			 *It is the existing client who is reannouncing himself*/
 			int rowIdx = newClient.id;
-			int colIdx = 1; //REG_BEGIN
+			int colIdx = 2; //REG_BEGIN
 			model.setValueAt((Object) newClient.reg_begin, rowIdx, colIdx);
 		}
 		else if (state == REG_END) {
 			int rowIdx = newClient.id;
-			int colIdx = 2; //REG_END
+			int colIdx = 3; //REG_END
 			model.setValueAt((Object) newClient.reg_end, rowIdx, colIdx);
 		}
 		else if (state == ROUND_BEGIN) {
 			int rowIdx = newClient.id;
-			int colIdx = 4 + 4*newClient.currentRound;			
+			int colIdx = 6 + 4*newClient.currentRound;			
 			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_begin(),
 					rowIdx, colIdx);
 
 		}
 		else if (state == ROUND_ESTIMATE || state == ROUND_END) {
 			int rowIdx = newClient.id;
-			int colIdx = 5 + 4*newClient.currentRound;
-			int colIdx2 = 7 + 4*newClient.currentRound;
+			int colIdx = 7 + 4*newClient.currentRound;
+			int colIdx2 = 9 + 4*newClient.currentRound;
 
-			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getEstimate(), 
-					rowIdx, colIdx);
+			model.setValueAt((Object) (newClient.getRound(newClient.currentRound).getEstimate()+"/"+
+					newClient.getRound(newClient.currentRound).getInternalEstimateAsDouble()
+					),rowIdx, colIdx);
 			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_end(), 
 					rowIdx, colIdx2);
 		}
 		else if (state == RANK) {				
-			int colIdx = 2+4*(next_round-1);
+			int colIdx = 4+4*(next_round-1);
 			if (next_round-1 == 0)
-				colIdx = 3;
-			for (int i=0; i<clients.size();i++) {
-				int rowIdx = i; //this is the id				
-				model.setValueAt(currentRanks.get(i), rowIdx, colIdx);
-				
+				colIdx = 4;
+			Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
+			Iterator<Map.Entry<String,ClientLog>> itr = s.iterator();			
+			while (itr.hasNext()) {			
+				Map.Entry<String,ClientLog> el = itr.next();
+				ClientLog c = el.getValue();			
+				if (c.isValid()) {
+					int rowIdx = c.id; //this is the id
+					model.setValueAt(currentRanks.get(c.id), rowIdx, colIdx);
+				}
 			}
 		}
+		else if (state == INIT_ESTIMATE) {
+			int colIdx = 5;
+			Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
+			Iterator<Map.Entry<String,ClientLog>> itr = s.iterator();
+			while (itr.hasNext()) {
+				Map.Entry<String,ClientLog> el = itr.next();
+				ClientLog c = el.getValue();			
+				if (c.isValid()) {
+					int rowIdx = c.id; //this is the id
+					model.setValueAt(currentEstimates.get(c.id)+c.personalOffset+"/"+currentEstimates.get(c.id), rowIdx, colIdx);
+				}
+			}
+		}
+
+
 
 	}
 
@@ -389,8 +429,12 @@ public class GUI extends JFrame {
 		//maps distance to the truth to client_id
 		MultiValueMap tmp = new MultiValueMap(); //because we may have non-unique estimates		
 		for (int i=0; i<clients.size(); i++) {
-			double distance = Math.abs(currentEstimates.get(i)-GUI.truth); 
-			tmp.put(distance,i);
+			double distance;
+			if (currentEstimates.get(i) != -1) {				
+				distance = Math.abs(currentEstimates.get(i)-GUI.truth);
+				tmp.put(distance,i);
+			}
+
 		}
 		LinkedHashMap<Double,ArrayList<Integer>> tmp2 = SortByValue(tmp);
 		List<Map.Entry<Double, ArrayList<Integer>>> list = new LinkedList<Map.Entry<Double, ArrayList<Integer>>>(tmp2.entrySet());

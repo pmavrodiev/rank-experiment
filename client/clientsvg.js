@@ -15,6 +15,7 @@
       this.gameTextDiv = document.getElementById("gameTextDiv");
       this.gameText = document.getElementById("gameText");
       this.gameTextWebSymbols = document.getElementsByClassName("websymbols")[0];
+      this.miscInfo = document.getElementById("miscinfotext");
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
@@ -23,6 +24,8 @@
       this.currentGuess = document.getElementById("currentGuess");
       this.angleLine = document.getElementById("angleLine");
       this.rankText = document.getElementById("rankText");
+      this.userNameInput = document.getElementById("username");
+      this.username = "";
       /* used to display a spinning waiting symbol when waiting for other players
       */
 
@@ -39,14 +42,15 @@
       this.gameMode = "";
       this.nextLevel = 0;
       this.currentRank = "";
-      this.zoom_scale = 0.2;
+      this.zoom_scale = 0.1;
       this.zoom_level = 0;
       this.previous_angle = Math.PI / 2;
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
-      this.serverURL = "http://192.168.1.161:8080/";
+      this.serverURL = "http://129.132.183.7:8080/";
       this.registered = false;
+      this.customIdentity = Math.random().toString(36).substring(5);
       this.flip = 0;
       if (this.isFirefox) {
         window.load = this.windowListen();
@@ -56,7 +60,7 @@
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, loadme, next, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, startGame, stopGame, updateGameTextDiv, updateRankInfo,
+      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, loadme, next, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, setEstimateAngle, startGame, stopGame, updateGameTextDiv, updateRankInfo,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -68,26 +72,31 @@
         return pt2;
       };
       send = function(theURL, _data) {
-        var processServerResponse, serverResponse;
+        var processError, processServerResponse, serverResponse;
         serverResponse = null;
+        processError = function(object, errorMessage, exception) {
+          alert("Cannot connect to server.");
+          _this.gameMode = false;
+          return clearTimeout(_this.loadmetimer);
+        };
         processServerResponse = function(response, status) {
-          if (status === "error") {
-            alert("Cannot connect to server");
-            clearTimeout(_this.loadmetimer);
-          } else if (status !== "success") {
+          if (status !== "success" && status !== "error") {
             alert("Network problems " + status);
+            _this.gameMode = false;
             clearTimeout(_this.loadmetimer);
           } else {
-            if (response.responseText.indexOf("announced") !== -1) {
-              _this.registered = true;
-            } else if (response.responseText.indexOf("inprogress") !== -1) {
+            if (response.responseText.indexOf("inprogress") !== -1) {
               alert("Sorry, the game has already started");
+              _this.gameMode = false;
+            } else if (response.responseText.indexOf("roundfinished") !== -1) {
+              alert("Sorry, you have been disconnected from the game due to network problems.");
               _this.gameMode = false;
             } else if (response.responseText.indexOf("finished") !== -1) {
               alert("The game has already finished");
               _this.gameMode = false;
             } else if (response.responseText.indexOf("maxrounds") !== -1) {
               _this.maxGameRounds = parseInt(response.responseText.split(" ")[1]);
+              _this.registered = true;
             }
           }
           return serverResponse = response.responseText;
@@ -100,18 +109,33 @@
           context: _this,
           type: "POST",
           data: _data,
+          headers: {
+            "Hex": _this.customIdentity,
+            "Username": _this.username
+          },
           async: false,
-          complete: processServerResponse
+          complete: processServerResponse,
+          error: processError
         });
         return serverResponse;
       };
       queryRound = function(data) {
         var srvResponse;
+        if (!_this.gameMode) {
+          $(_this).triggerHandler({
+            type: "stopGame"
+          });
+          return true;
+        }
         srvResponse = send(_this.serverURL, "rank " + _this.nextLevel);
         console.log("Server said " + srvResponse);
         if (srvResponse.indexOf("urrank") !== -1) {
           addListeners();
           _this.currentRank = srvResponse.split(" ")[2];
+          if (_this.nextLevel === 0) {
+            _this.initialEstimate = srvResponse.split(" ")[3];
+            setEstimateAngle(_this.initialEstimate);
+          }
           console.log("My rank at the beginning of round " + (_this.nextLevel + 1) + " is: " + _this.currentRank);
           updateRankInfo();
           updateGameTextDiv(true);
@@ -121,6 +145,29 @@
           return queryRound(data);
         }), 3000);
       };
+      /*
+         autoGuess = () =>
+            if @rankText.textContent!= "" and @gameMode
+               @rankText.textContent="Your current rank: " 
+            
+            #should we send the click to the server?
+            if @gameMode
+               if @nextLevel < @maxGameRounds
+                  resetZoom(false)
+                  send(@serverURL,"estimate "+@nextLevel + " " + Math.random()*175 + 1)       
+                  @nextLevel++     
+                  #show wait for all players
+                  updateGameTextDiv(false)
+                  removeListeners()
+                  $(this).triggerHandler(
+                      type:"queryServer",
+                      var1:'Howdy',
+                      information:'I could pass something here also'
+                  )
+                else #stop game
+                    $(this).triggerHandler(type:"stopGame")
+      */
+
       loadme = function() {
         _this.gameTextWebSymbols.innerHTML = _this.loaderSymbols[_this.loaderIndex];
         if (_this.loaderIndex < _this.loaderSymbols.length - 1) {
@@ -131,15 +178,13 @@
         return _this.loadmetimer = setTimeout(loadme, _this.loaderRate);
       };
       updateGameTextDiv = function(flag) {
-        var a;
         if (!flag) {
           _this.gameText.setAttribute("style", "");
           _this.gameTextWebSymbols.setAttribute("class", "websymbols");
           _this.gameText.textContent = "Please wait for the other players";
-          $(_this).triggerHandler({
+          return $(_this).triggerHandler({
             type: "loadme"
           });
-          return a = 4;
         } else {
           clearTimeout(_this.loadmetimer);
           _this.gameTextWebSymbols.innerHTML = "";
@@ -153,15 +198,20 @@
             return _this.gameText.textContent = "Thank you for playing the game. You can close your browser now.";
           } else {
             _this.gameText.textContent = "Round " + (_this.nextLevel + 1);
-            return _this.gameTextWebSymbols.textContent = ": please make a guess.";
+            _this.gameTextWebSymbols.textContent = ": \n please make a guess.";
+            if (_this.nextLevel === 0) {
+              return _this.miscInfo.textContent = "The random initial guess assigned to you is indicated by the red circle.";
+            }
           }
         }
       };
       updateRankInfo = function() {
-        if (_this.nextLevel === _this.maxGameRounds) {
-          return _this.rankText.textContent = "Your final rank: " + _this.currentRank;
+        if (_this.nextLevel === 0) {
+          return _this.rankText.textContent = _this.username + ", your initial rank is: " + _this.currentRank;
+        } else if (_this.nextLevel === _this.maxGameRounds) {
+          return _this.rankText.textContent = _this.username + ", your final rank: " + _this.currentRank;
         } else {
-          return _this.rankText.textContent = "Your current rank: " + _this.currentRank;
+          return _this.rankText.textContent = _this.username + ", your rank at the end of round " + _this.nextLevel + " is: " + _this.currentRank;
         }
       };
       ccMouseWheel = function(event) {
@@ -194,14 +244,25 @@
         }
         e.cancelBubble = true;
         e.returnValue = false;
+        if (deltaY > 0) {
+          deltaY = 1.1009174311926606;
+        } else {
+          deltaY = -1.1009174311926606;
+        }
         zoomLevel = Math.pow(1 + _this.zoom_scale, deltaY);
+        if (_this.zoom_level >= 30 && zoomLevel > 1) {
+          zoomLevel = 1;
+        }
+        if (_this.zoom_level <= -30 && zoomLevel < 1) {
+          zoomLevel = 1;
+        }
         if (_this.zoom_level === 0) {
-          _this.rememberTargetCircle.x = _this.targetCircle.cx.baseVal.value;
-          _this.rememberTargetCircle.y = _this.targetCircle.cy.baseVal.value;
+          _this.rememberTargetCircle.x = _this.targetCircle.getAttribute("cx");
+          _this.rememberTargetCircle.y = _this.targetCircle.getAttribute("cy");
         }
         if (zoomLevel > 1) {
           _this.zoom_level++;
-        } else {
+        } else if (zoomLevel < 1) {
           _this.zoom_level--;
         }
         tm = _this.compositeG.getScreenCTM();
@@ -263,15 +324,16 @@
         animatedElement[0].setAttribute("dur", "0.3s");
         animatedElement[0].beginElement();
         if (!_this.flip && _this.instructionIndex === 1) {
-          _this.instructionsText.textContent += "\n\rThe small red circle at the selected position shows your last quess.\n\r";
+          _this.instructionsText.textContent += "\n\rThe small red circle at the selected position shows your last guess.\n\r";
           _this.buttonNext.disabled = false;
           _this.flip = 1;
         }
         if (_this.rankText.textContent !== "" && _this.gameMode) {
-          _this.rankText.textContent = "Your current rank: ";
+          _this.rankText.textContent = "Waiting for other players.";
         }
         if (_this.gameMode) {
           if (_this.nextLevel < _this.maxGameRounds) {
+            _this.miscInfo.textContent = "";
             resetZoom(false);
             send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.previous_angle * 180 / Math.PI);
             _this.nextLevel++;
@@ -288,6 +350,16 @@
             });
           }
         }
+      };
+      setEstimateAngle = function(angle) {
+        var radius;
+        radius = _this.majorCircle.getAttribute("r");
+        _this.angleLine.setAttribute("x2", radius * Math.cos(angle));
+        _this.angleLine.setAttribute("y2", radius * Math.sin(angle));
+        _this.targetCircle.setAttribute("cx", radius * Math.cos(angle));
+        _this.targetCircle.setAttribute("cy", radius * Math.sin(angle));
+        _this.currentGuess.setAttribute("cx", radius * Math.cos(angle));
+        return _this.currentGuess.setAttribute("cy", radius * Math.sin(angle));
       };
       ccMouseMove = function(e) {
         var angle, coord, radius;
@@ -310,44 +382,56 @@
             type: "startGame"
           });
         } else if (_this.instructionIndex < 3) {
-          _this.instructionIndex++;
-          if (_this.instructionIndex === 1) {
-            _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
-            _this.circleCanvas.addEventListener('click', ccMouseClick, false);
-          }
-          if (_this.instructionIndex === 2) {
-            _this.circleCanvas.onwheel = ccMouseWheel;
-            _this.circleCanvas.onmousewheel = ccMouseWheel;
-            if (_this.isFirefox) {
-              _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
+          if (_this.userNameInput.value === "") {
+            return alert("Please enter your username");
+          } else {
+            if (_this.username === "") {
+              _this.username = _this.userNameInput.value.charAt(0).toUpperCase() + _this.userNameInput.value.slice(1);
+              _this.userNameInput.parentNode.parentNode.removeChild(_this.userNameInput.parentNode);
             }
+            _this.instructionIndex++;
+            if (_this.instructionIndex === 1) {
+              _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
+              _this.circleCanvas.addEventListener('click', ccMouseClick, false);
+            }
+            if (_this.instructionIndex === 2) {
+              _this.circleCanvas.onwheel = ccMouseWheel;
+              _this.circleCanvas.onmousewheel = ccMouseWheel;
+              if (_this.isFirefox) {
+                _this.circleCanvas.addEventListener("DOMMouseScroll", ccMouseWheel, false);
+              }
+            }
+            _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
+            _this.buttonNext.disabled = true;
+            _this.buttonPrevious.disabled = false;
+            if (_this.instructionIndex === 3) {
+              _this.rankText.textContent = "Your Rank: 1 (25)";
+              _this.buttonNextText.innerHTML = "Start";
+              _this.buttonNext.innerHTML = "<text class=\"nextbuttontext\">Start</text>.";
+              _this.buttonNext.disabled = false;
+            }
+            return resetZoom(true);
           }
-          _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
-          _this.buttonNext.disabled = true;
-          _this.buttonPrevious.disabled = false;
-          if (_this.instructionIndex === 3) {
-            _this.rankText.textContent = "Your Rank: 1 (25)";
-            _this.buttonNextText.innerHTML = "Start";
-            _this.buttonNext.innerHTML = "<text class=\"nextbuttontext\">Start</text>.";
-            _this.buttonNext.disabled = false;
-          }
-          return resetZoom(true);
         }
       };
       startGame = function() {
-        resetZoom(true);
-        removeListeners();
-        _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
-        _this.gameTextDiv.setAttribute("style", "height:100%;width:20%;float:left;padding-left:10px;padding-top:10px");
-        updateGameTextDiv(false);
-        _this.buttonNext.parentNode.removeChild(_this.buttonNext);
-        _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
-        _this.rankText.textContent = "Your current rank: ";
-        return $(_this).triggerHandler({
-          type: "queryServer",
-          var1: 'Howdy',
-          information: 'I could pass something here also'
-        });
+        if (_this.registered) {
+          resetZoom(true);
+          removeListeners();
+          _this.instructionsDiv.parentNode.removeChild(_this.instructionsDiv);
+          _this.gameTextDiv.setAttribute("style", "height:100%;width:20%;float:left;padding-left:10px;padding-top:10px");
+          updateGameTextDiv(false);
+          _this.buttonNext.parentNode.removeChild(_this.buttonNext);
+          _this.buttonPrevious.parentNode.removeChild(_this.buttonPrevious);
+          _this.rankText.textContent = "Waiting for other players.";
+          return $(_this).triggerHandler({
+            type: "queryServer",
+            var1: 'Howdy'
+          });
+        } else {
+          alert("You have not properly registered for the game.");
+          return _this.gameMode = false;
+        }
       };
       stopGame = function() {
         _this.gameMode = false;
@@ -360,6 +444,7 @@
         _this.gameMode = false;
         _this.buttonPrevious.disabled = false;
         _this.buttonNextText.innerHTML = "Next";
+        _this.buttonNext.innerHTML = "<text class=\"nextbuttontext\">Next</text>>";
         _this.instructionIndex--;
         if (_this.instructionIndex <= 0) {
           _this.instructionIndex = 0;
@@ -375,10 +460,10 @@
         }
       };
       initInstructions = function() {
-        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "that we have randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your final guess is to the hidden point, compared to others.\n\r" + "The game consists of 10 rounds. During each round, you have to make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices.\n\r" + "At the beginning of each round, you will be informed of your relative ranking. " + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Conversely, if you are farthest from the point, you rank last.\n\r" + "Your starting rank for round 1 will be determined randomly.\n\r" + "Click \"Next\" for a quick practice.";
+        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your final guess is to the hidden point, compared to others.\n\r" + "The game consists of 10 rounds. During each round, you make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices.\n\r" + "At the beginning of each round, you will be informed of your relative ranking. " + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Conversely, if you are farthest from the point, you rank last.\n\r" + "Your starting rank for round 1 will be determined randomly.\n\r" + "To continue, enter a username in the box below and click \"Next\" for a quick practice.";
         _this.instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ...";
-        _this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel. " + "The zoom is with respect to the current position of the green line.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
-        _this.instructionVector[3] = "Finally, your current rank is displayed above the circle. In the example shown, " + "the number in the brackets shows the total number " + "of players. Your rank will be updated at the end of each round, after all players " + " have submitted their choices, and will be presented to you at the beggining of the next round.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle, in which case random rank information will be presented. " + "Alternatively, you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game.";
+        _this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
+        _this.instructionVector[3] = "Finally, your rank for the previous round is displayed above the circle. " + "The number in the brackets shows the current number " + "of connected players. This number, together with your rank, will be updated at the end of each round, after all players " + " have submitted their estimates. " + "Your rank will be presented to you at the beggining of each new round.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle or " + "you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game. " + "You will be assigned a random initial estimate, indicated by the red circle, on which your initial rank will be based.";
         return _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
       };
       addListeners = function() {

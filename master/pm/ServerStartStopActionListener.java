@@ -32,7 +32,8 @@ public class ServerStartStopActionListener implements ActionListener{
 				for (int i=0; i<GUI.gameRounds;i++) GUI.gameRoundsStates[i]=false;
 				GUI.next_round = 0;
 				GUI.getNextRoundButton().setText("Begin Round 1");				
-				GUI.getNextRoundButton().setEnabled(true);				
+				GUI.getNextRoundButton().setEnabled(true);
+				GUI.activeClients=0;
 				//GUI.stopOutputRedirect();
 			} catch (Exception exception) {
 				exception.printStackTrace();
