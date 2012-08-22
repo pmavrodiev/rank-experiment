@@ -1,0 +1,3 @@
+AuthType "Basic"
+AuthName "Pavlin's private stuff"
+require user mpavlin tessonec marcelos marginec fschweitzer

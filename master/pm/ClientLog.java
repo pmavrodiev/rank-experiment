@@ -33,35 +33,42 @@ public class ClientLog {
 
 	public int id;
 	public String client_ip; //the IP of the connecting client
+	public String hex;
 	public String reg_begin;
 	public String reg_end;
 	public Vector<gameRound> gameRounds = new Vector<gameRound>(GUI.gameRounds);
 	public int currentRound; //the current round where the client is
 	public double personalOffset; //the agent's personal offset	
 	public boolean validClient; //checks to see if the client has disconnected at some point
+	public String username;
 	
-	public ClientLog(String client_ip, String reg_begin,String reg_end,int id, double personal_offset) {
+	public ClientLog(String client_ip,String hex ,String reg_begin,String reg_end,int id, double personal_offset) {
+		this.username = null;
 		this.validClient = true;
 		this.personalOffset = personal_offset;
 		this.id = id;
 		this.client_ip = client_ip;
+		this.hex = hex;
 		this.reg_begin = reg_begin;
 		this.reg_end = reg_end;
 		this.currentRound = 0;
 		for (int i=0; i<(GUI.gameRounds+1); i++)
 			gameRounds.add(new gameRound());
 	}
-
+	/*
 	public ClientLog(String client_ip) {
+		this.username = null;
 		this.id = -1;
 		this.personalOffset = 0;
 		this.client_ip = client_ip;
+		this.hex = null;
 		this.reg_begin = null;
 		this.reg_end = null;
 		this.currentRound = 0;
 		for (int i=0; i<GUI.gameRounds; i++)
 			gameRounds.add(new gameRound());
-	}	
+	}
+	*/	
 	public void initNewRound(String round_begin, int index) {
 		gameRound newRound = new gameRound();
 		newRound.round_begin = round_begin;		

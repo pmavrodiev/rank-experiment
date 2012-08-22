@@ -25,11 +25,13 @@ public class ServerStartStopActionListener implements ActionListener{
 			btnStartStop.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 			try {
 				myServer.stop();
-				DefaultTableModel model = (DefaultTableModel) GUI.getLogTable().getModel();
-				model.getDataVector().removeAllElements();
-				model.fireTableDataChanged();
+				for (int i=0; i<GUI.gameStages; i++) {
+					DefaultTableModel model = (DefaultTableModel) GUI.getLogTable(i).getModel();
+					model.getDataVector().removeAllElements();
+					model.fireTableDataChanged();
+				}
 				GUI.clients.clear();
-				for (int i=0; i<GUI.gameRounds;i++) GUI.gameRoundsStates[i]=false;
+				for (int i=0; i<=GUI.gameRounds;i++) GUI.gameRoundsStates[i]=false;
 				GUI.next_round = 0;
 				GUI.getNextRoundButton().setText("Begin Round 1");				
 				GUI.getNextRoundButton().setEnabled(true);

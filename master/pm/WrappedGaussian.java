@@ -14,12 +14,12 @@ public class WrappedGaussian {
 		if (sigma == 0) return mu;
 		return ((mu + sigma*r.nextGaussian()) % (2*Math.PI))*180/Math.PI;
 	}
-/*
+
 	public static void main(String[] args) {
-		int N = 10;
+		int N = 20;
 		for (int i=0; i<N; i++)
-			System.out.println(phi_wrapped(Math.PI/2,0.05));
+			System.out.println(phi_wrapped(0,0.05));
 	}
-*/
+
 	
 }

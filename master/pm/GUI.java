@@ -5,6 +5,7 @@ package pm;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -22,10 +23,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.UIManager;
@@ -43,7 +47,9 @@ public class GUI extends JFrame {
 	public static final double mu = 90.0*Math.PI/180; //in radians
 	//public static final double init_colllective_err = Math.pow(truth-mu,2.0); 
 	public static final double init_diversity = 0.0025;
-	public static final int gameRounds = 10;
+	public static final int gameRounds = 3;
+	public static final int gameStages = 3;
+	public static int currentStage = 0;
 	public static int next_round = 0;
 	public static final int ANNOUNCE=0;	
 	public static final int RE_ANNOUNCE=1;
@@ -53,6 +59,7 @@ public class GUI extends JFrame {
 	public static final int ROUND_END=5;
 	public static final int RANK=6;
 	public static final int INIT_ESTIMATE=7;
+	public static final int USERNAME = 8;	
 	public static boolean inprogress=false;
 	public static boolean finished = false;
 	public static HashMap<Integer, Integer> currentRanks; //client id->rank
@@ -66,11 +73,12 @@ public class GUI extends JFrame {
 	private static JPanel jPanel0;
 	private static JButton startstop;
 	private static JButton nextRound;
-	private static JScrollPane scrollpane;
-	private static JTable logtable;
+	private static JScrollPane[] scrollpane;
+	private static JTable[] logtable;
 	public static JTextArea console_output;
 	private static JScrollPane console_pane;
 	private static JSplitPane split_pane;
+	private static JTabbedPane tabbed_pane;
 	/*misc stuff*/
 	private static final String PREFERRED_LOOK_AND_FEEL = "javax.swing.plaf.metal.MetalLookAndFeel";
 	private static MyServer myServer;
@@ -88,7 +96,8 @@ public class GUI extends JFrame {
 		activeClients = 0;
 		gameRoundsStates = new boolean[gameRounds+1]; //+1 for the final dummy round, i.e. similar to the .end() iterator in stl containers
 		for (int i=0; i<(gameRounds+1);i++) gameRoundsStates[i]=false;
-		//clients = new Map<String,ClientLog>();
+		scrollpane = new JScrollPane[gameStages];
+		logtable = new JTable[gameStages];		
 		initComponents();
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
@@ -124,12 +133,29 @@ public class GUI extends JFrame {
 
 	public static JSplitPane getJSplitPane() {
 		if (split_pane == null) {
-			split_pane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,getScrollPane(),getConsolePane());
+			split_pane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,getTabbedPane(),getConsolePane());
+			//split_pane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,getScrollPane(),getConsolePane());
 			split_pane.setDividerLocation(150);
 		}
 		return split_pane;
 	}
 
+
+	public static JTabbedPane getTabbedPane() {
+		if (tabbed_pane == null) {
+			tabbed_pane = new JTabbedPane();
+			/*add the tab with the Initial Conditions.*/
+			tabbed_pane.addTab("Initial Conditions", null);			
+			/*add the "Stages" tabs*/
+			for (int i=1; i<=gameStages; i++) {
+				tabbed_pane.addTab("Stage "+i, getScrollPane(i-1));
+				tabbed_pane.setEnabledAt(i, i==1 ? true: false); //disable all but the first tab
+			}
+			
+
+		}
+		return tabbed_pane;
+	}
 
 	public static JScrollPane getConsolePane() {
 		if (console_pane == null) {
@@ -212,7 +238,7 @@ public class GUI extends JFrame {
 							if (next_round == (gameRounds-1))
 								((JButton) e.getSource()).setText("Begin Last Round " + (next_round+1));
 						}
-						updateGUITable(null, RANK);
+						updateGUITable(null, RANK);						
 					} //end if (next_round<gameRounds
 
 
@@ -238,22 +264,23 @@ public class GUI extends JFrame {
 		return jPanel0;
 	}
 
-	private static JScrollPane getScrollPane() {
-		if (scrollpane == null) {
-			scrollpane = new JScrollPane(getLogTable());
-			getLogTable().setFillsViewportHeight(true);
-
+	private static JScrollPane getScrollPane(int whichPane) {
+		if (scrollpane[whichPane] == null) {
+			scrollpane[whichPane] = new JScrollPane(getLogTable(whichPane));
+			getLogTable(whichPane).setFillsViewportHeight(true);
 		}
-		return scrollpane;
+		return scrollpane[whichPane];
 	}
 
-	public static JTable getLogTable() {
-		if (logtable == null) {
+	public static JTable getLogTable(int whichTable) {
+		if (logtable[whichTable] == null) {
 
 			DefaultTableModel dataModel = new 	DefaultTableModel();
-			logtable = new JTable(dataModel);
+			logtable[whichTable] = new JTable(dataModel);
 			/*create columns*/
-			dataModel.addColumn("Client");
+			dataModel.addColumn("IP");
+			dataModel.addColumn("Hex");
+			dataModel.addColumn("Username");
 			dataModel.addColumn("Offset");
 			dataModel.addColumn("RegBegin");
 			dataModel.addColumn("RegEnd");
@@ -267,12 +294,12 @@ public class GUI extends JFrame {
 				String c4 = "Round_" + (i+1) + "_END";
 				dataModel.addColumn(c);	dataModel.addColumn(c2);dataModel.addColumn(c3);dataModel.addColumn(c4);				
 			}
-			for (int i=0; i<(6+4*gameRounds); i++) 
-				logtable.getColumnModel().getColumn(i).setPreferredWidth(120);
+			for (int i=0; i<(8+4*gameRounds); i++) 
+				logtable[whichTable].getColumnModel().getColumn(i).setPreferredWidth(120);
 
-			logtable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF );  
+			logtable[whichTable].setAutoResizeMode(JTable.AUTO_RESIZE_OFF );  
 		}
-		return logtable;
+		return logtable[whichTable];
 	}
 
 
@@ -358,33 +385,33 @@ public class GUI extends JFrame {
 	}
 
 	public static void updateGUITable(ClientLog newClient,int state) {
-		DefaultTableModel model = (DefaultTableModel) getLogTable().getModel();
+		DefaultTableModel model = (DefaultTableModel) getLogTable(currentStage).getModel();
 		if (state == ANNOUNCE) {
-			model.addRow(new Object[] {newClient.client_ip,newClient.personalOffset,newClient.reg_begin});
+			model.addRow(new Object[] {newClient.client_ip,newClient.hex,null,newClient.personalOffset,newClient.reg_begin});
 		}
 		else if (state == RE_ANNOUNCE) {
 			/*The newClient parameter is not really new in this case. 
 			 *It is the existing client who is reannouncing himself*/
 			int rowIdx = newClient.id;
-			int colIdx = 2; //REG_BEGIN
+			int colIdx = 4; //REG_BEGIN
 			model.setValueAt((Object) newClient.reg_begin, rowIdx, colIdx);
 		}
 		else if (state == REG_END) {
 			int rowIdx = newClient.id;
-			int colIdx = 3; //REG_END
+			int colIdx = 5; //REG_END
 			model.setValueAt((Object) newClient.reg_end, rowIdx, colIdx);
 		}
 		else if (state == ROUND_BEGIN) {
 			int rowIdx = newClient.id;
-			int colIdx = 6 + 4*newClient.currentRound;			
+			int colIdx = 8 + 4*newClient.currentRound;			
 			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_begin(),
 					rowIdx, colIdx);
 
 		}
 		else if (state == ROUND_ESTIMATE || state == ROUND_END) {
 			int rowIdx = newClient.id;
-			int colIdx = 7 + 4*newClient.currentRound;
-			int colIdx2 = 9 + 4*newClient.currentRound;
+			int colIdx = 9 + 4*newClient.currentRound;
+			int colIdx2 = 11 + 4*newClient.currentRound;
 
 			model.setValueAt((Object) (newClient.getRound(newClient.currentRound).getEstimate()+"/"+
 					newClient.getRound(newClient.currentRound).getInternalEstimateAsDouble()
@@ -392,10 +419,8 @@ public class GUI extends JFrame {
 			model.setValueAt((Object) newClient.getRound(newClient.currentRound).getRound_end(), 
 					rowIdx, colIdx2);
 		}
-		else if (state == RANK) {				
-			int colIdx = 4+4*(next_round-1);
-			if (next_round-1 == 0)
-				colIdx = 4;
+		else if (state == RANK) {			
+			int colIdx = (next_round-1 == 0) ? 6 : 6+4*(next_round-1); 
 			Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
 			Iterator<Map.Entry<String,ClientLog>> itr = s.iterator();			
 			while (itr.hasNext()) {			
@@ -408,7 +433,7 @@ public class GUI extends JFrame {
 			}
 		}
 		else if (state == INIT_ESTIMATE) {
-			int colIdx = 5;
+			int colIdx = 7;
 			Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
 			Iterator<Map.Entry<String,ClientLog>> itr = s.iterator();
 			while (itr.hasNext()) {
@@ -420,9 +445,11 @@ public class GUI extends JFrame {
 				}
 			}
 		}
-
-
-
+		else if (state == USERNAME) {
+			int colIdx = 2;
+			int rowIdx = newClient.id;
+			model.setValueAt((Object) newClient.username,rowIdx, colIdx);
+		}
 	}
 
 	public static void computeRanks() {

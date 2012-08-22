@@ -11,6 +11,8 @@ import java.util.Enumeration;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
@@ -99,8 +101,8 @@ public class MyHandlers {
 
 							else {
 								/*add the client to the known clients*/
-								log.println("Client announced from "+hex+"\n");							
-								ClientLog newClient = new ClientLog(hex,dateFormat.format(new Date()),null,GUI.clients.size(),UniformDistribution.pi_uniform());
+								log.println("Client announced from "+ip+":"+hex+"\n");							
+								ClientLog newClient = new ClientLog(ip,hex,dateFormat.format(new Date()),null,GUI.clients.size(),UniformDistribution.pi_uniform());
 								synchronized (this) {									
 									GUI.clients.put(hex, newClient);
 									GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client
@@ -119,7 +121,7 @@ public class MyHandlers {
 							 * if the round can be started, update Round_X_BEGIN*/
 							String[] tokenize_payload = payload.split("\\s");
 							ClientLog oldClient = GUI.clients.get(hex);
-							String username = getUserName(request);asd
+							
 							try {
 								Integer requestedRound = new Integer(tokenize_payload[1]);
 								if (requestedRound < GUI.next_round-1) {
@@ -128,6 +130,13 @@ public class MyHandlers {
 									return;
 								}
 								if (GUI.gameRoundsStates[requestedRound]) {//game round started?
+									/*update the username info*/
+									if (requestedRound == 0) {
+										String username = getUserName(request);
+										oldClient.username = username;
+										GUI.updateGUITable(oldClient, GUI.USERNAME);
+									}
+									
 									int myRank = GUI.currentRanks.get(oldClient.id);
 									double initialOffsetEstimate = (GUI.currentEstimates.get(oldClient.id)+oldClient.personalOffset)*Math.PI/180; //in radians									
 									oldClient.getRound(requestedRound).setRank(myRank);

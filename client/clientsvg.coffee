@@ -212,7 +212,7 @@ class window.rank_experiment
       if @nextLevel == 0
         @rankText.textContent = @username+", your initial rank is: "+@currentRank
       else if @nextLevel == @maxGameRounds
-        @rankText.textContent = @username+", your final rank: "+@currentRank 
+        @rankText.textContent = @username+", your final rank is: "+@currentRank 
       else
         @rankText.textContent = @username+", your rank at the end of round " + @nextLevel + " is: "+@currentRank
    

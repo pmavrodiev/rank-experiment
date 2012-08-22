@@ -209,7 +209,7 @@
         if (_this.nextLevel === 0) {
           return _this.rankText.textContent = _this.username + ", your initial rank is: " + _this.currentRank;
         } else if (_this.nextLevel === _this.maxGameRounds) {
-          return _this.rankText.textContent = _this.username + ", your final rank: " + _this.currentRank;
+          return _this.rankText.textContent = _this.username + ", your final rank is: " + _this.currentRank;
         } else {
           return _this.rankText.textContent = _this.username + ", your rank at the end of round " + _this.nextLevel + " is: " + _this.currentRank;
         }
