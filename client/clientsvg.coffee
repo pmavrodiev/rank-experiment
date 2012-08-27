@@ -55,7 +55,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://129.132.183.7:8070/"
+    @serverURL = "http://192.168.1.161:8070/"
     @registered = false
     @customIdentity = Math.random().toString(36).substring(5)
     

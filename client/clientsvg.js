@@ -54,7 +54,7 @@
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
-      this.serverURL = "http://129.132.183.7:8070/";
+      this.serverURL = "http://192.168.1.161:8070/";
       this.registered = false;
       this.customIdentity = Math.random().toString(36).substring(5);
       this.flip = 0;

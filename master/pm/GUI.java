@@ -319,8 +319,10 @@ public class GUI extends JFrame {
 						for (int i=0; i<model.getRowCount(); i++) {
 							ClientLog client = clients.get(model.getValueAt(i,1));
 							if (model.getValueAt(i, model.getColumnCount()-2) == null) {
-								activeClients--; // this guys is out
-								client.inValidate();
+								if (client.validClient) { //if check fails, this client has already been invalidated
+									activeClients--; // this guys is out
+									client.inValidate();
+								}
 							}
 						}
 
@@ -617,7 +619,7 @@ public class GUI extends JFrame {
 
 	public static void updateGUITable(ClientLog newClient, int state) {
 		/*always take next_stage-1 in this function, because we need the current stage*/
-		if (next_stage-1 >= gameStages)
+		if (next_stage-1 >= gameStages || next_stage-1 < 0)
 			return;
 		DefaultTableModel model = (DefaultTableModel) getLogTable(next_stage-1).getModel();
 		if (state == ANNOUNCE) {
