@@ -149,15 +149,11 @@ class window.rank_experiment
         updateRankInfo()
         updateGameTextDiv(true)
         #decide to disconnect randomly before sending estimate
-        #if Math.random() < 0.2
-        #  $(this).triggerHandler(type:"stopGame")
-        #  return true      
+        if Math.random() < 0.1
+          $(this).triggerHandler(type:"stopGame")
+          return true      
         #SEND AUTOMATIC RANDOM ANGLE TO THE SERVER
-        #$(this).triggerHandler(type:"autoGuess")
-        #decide to disconnect randomly before sending rank request, but after sending estimate
-        #if Math.random() < 0.2
-        #  $(this).triggerHandler(type:"stopGame")
-        #  return true                  
+        $(this).triggerHandler(type:"autoGuess")                  
         return true
       
       setTimeout((-> queryRound(data)),3000)
@@ -172,13 +168,12 @@ class window.rank_experiment
         if @nextStage < @maxGameStages
             if @nextLevel < @maxGameRounds
               @miscInfo.textContent = ""
-              resetZoom(false)
-              #wait a bit
-              ms=2000
-              ms += new Date().getTime();
-              while (new Date() < ms)
-                g=5
-              send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + @previous_angle*180/Math.PI)           
+              resetZoom(false)             
+              send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + Math.random()*180/Math.PI)
+              #decide to disconnect randomly before sending rank request, but after sending estimate
+              if Math.random() < 0.1
+                $(this).triggerHandler(type:"stopGame")
+                return true        
               @nextLevel++     
               #show wait for all players
               updateGameTextDiv(false)
@@ -286,7 +281,13 @@ class window.rank_experiment
      @currentRank = ""
      updateGameTextDiv(false)
      #notify the server that we are ready for the next stage
+     if Math.random() < 0.1
+        $(this).triggerHandler(type:"stopGame")
+        return true       
      send(@serverURL,"ready "+@nextStage)
+     if Math.random() < 0.1
+        $(this).triggerHandler(type:"stopGame")
+        return true     
      if @rankText.textContent!= "" and @gameMode
         @rankText.textContent="Waiting for other players."     
      $(this).triggerHandler(type:"queryServer")
@@ -703,10 +704,10 @@ class window.rank_experiment
       $(this).on("loadme",loadme)
       $(this).on("nextStage",nextStage)
       $(this).on("summary",summary)      
-      #$(this).on("autoGuess",autoGuess)   
+      $(this).on("autoGuess",autoGuess)   
       #START THE GAME IMMEDIATELY
-      #@gameMode = true
-      #$(this).triggerHandler(type:"startGame")
+      @gameMode = true
+      $(this).triggerHandler(type:"startGame")
      
     
    init()

@@ -153,6 +153,15 @@
           console.log("My rank at the beginning of round " + (_this.nextLevel + 1) + " and stage " + (_this.nextStage + 1) + " is: " + _this.currentRank);
           updateRankInfo();
           updateGameTextDiv(true);
+          if (Math.random() < 0.1) {
+            $(_this).triggerHandler({
+              type: "stopGame"
+            });
+            return true;
+          }
+          $(_this).triggerHandler({
+            type: "autoGuess"
+          });
           return true;
         }
         return setTimeout((function() {
@@ -160,7 +169,6 @@
         }), 3000);
       };
       autoGuess = function() {
-        var g, ms;
         if (_this.rankText.textContent !== "" && _this.gameMode) {
           _this.rankText.textContent = "Your current rank: ";
         }
@@ -169,12 +177,13 @@
             if (_this.nextLevel < _this.maxGameRounds) {
               _this.miscInfo.textContent = "";
               resetZoom(false);
-              ms = 2000;
-              ms += new Date().getTime();
-              while (new Date() < ms) {
-                g = 5;
+              send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.nextStage + " " + Math.random() * 180 / Math.PI);
+              if (Math.random() < 0.1) {
+                $(_this).triggerHandler({
+                  type: "stopGame"
+                });
+                return true;
               }
-              send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.nextStage + " " + _this.previous_angle * 180 / Math.PI);
               _this.nextLevel++;
               updateGameTextDiv(false);
               removeListeners();
@@ -296,7 +305,19 @@
         _this.nextLevel = 0;
         _this.currentRank = "";
         updateGameTextDiv(false);
+        if (Math.random() < 0.1) {
+          $(_this).triggerHandler({
+            type: "stopGame"
+          });
+          return true;
+        }
         send(_this.serverURL, "ready " + _this.nextStage);
+        if (Math.random() < 0.1) {
+          $(_this).triggerHandler({
+            type: "stopGame"
+          });
+          return true;
+        }
         if (_this.rankText.textContent !== "" && _this.gameMode) {
           _this.rankText.textContent = "Waiting for other players.";
         }
@@ -665,7 +686,12 @@
         $(_this).on("stopGame", stopGame);
         $(_this).on("loadme", loadme);
         $(_this).on("nextStage", nextStage);
-        return $(_this).on("summary", summary);
+        $(_this).on("summary", summary);
+        $(_this).on("autoGuess", autoGuess);
+        _this.gameMode = true;
+        return $(_this).triggerHandler({
+          type: "startGame"
+        });
       };
       return init();
     };
