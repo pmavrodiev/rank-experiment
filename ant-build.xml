@@ -14,6 +14,7 @@
             <zipfileset excludes="META-INF/*.SF" src="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1-javadoc.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1-sources.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/pmavrodiev/Programs/rank-experiment/master/lib/sqlite-jdbc-3.7.2.jar"/>
         </jar>
     </target>
 </project>

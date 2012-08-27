@@ -32,9 +32,17 @@ public class ServerStartStopActionListener implements ActionListener{
 				}
 				GUI.clients.clear();
 				for (int i=0; i<=GUI.gameRounds;i++) GUI.gameRoundsStates[i]=false;
+				for (int i=0; i<=GUI.gameStages;i++) GUI.gameStagesStates[i]=false;
 				GUI.next_round = 0;
+				GUI.next_stage = 0;
 				GUI.getNextRoundButton().setText("Begin Round 1");				
-				GUI.getNextRoundButton().setEnabled(true);
+				GUI.getNextRoundButton().setEnabled(false);
+				GUI.getNextStageButton().setEnabled(false);
+				GUI.getNextStageButton().setText("Begin Stage 1");
+				for (int i=1; i<=GUI.gameStages; i++) 					
+					GUI.getTabbedPane().setEnabledAt(i,false); //disable all but the first tab
+				
+				
 				GUI.activeClients=0;
 				//GUI.stopOutputRedirect();
 			} catch (Exception exception) {
@@ -52,6 +60,7 @@ public class ServerStartStopActionListener implements ActionListener{
 				MyHandlers.CLIENT.log = new Log(true);
 				GUI.inprogress = false;
 				GUI.finished = false;
+				GUI.getNextStageButton().setEnabled(true);			
 			} catch (Exception exception) {
 				exception.printStackTrace();
 			}

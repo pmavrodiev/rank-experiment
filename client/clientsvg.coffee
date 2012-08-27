@@ -12,6 +12,7 @@ class window.rank_experiment
     @gameTextDiv = document.getElementById("gameTextDiv")
     @gameText = document.getElementById("gameText")
     @gameTextWebSymbols = document.getElementsByClassName("websymbols")[0]
+    @miscInfoDiv = document.getElementById("miscinfo")    
     @miscInfo = document.getElementById("miscinfotext")
     #drawing elements
     @compositeG=document.getElementById("svgCanvas") 
@@ -33,11 +34,17 @@ class window.rank_experiment
     @loadmetimer=null
     ### ###
     @maxGameRounds = 0 #obtained from the server upon announcement
+    @maxGameStages = 0 #obtained from the server upon announcement
     @instructionVector = new Array()
     @instructionIndex = 0
     @gameMode = ""
     @nextLevel = 0
-    @currentRank = ""
+    @nextStage = 0
+    @currentRank = ""       
+    @tbody  = document.createElement("tbody")
+    #payoffs
+    @payoffs_per_stage = [10,6,4] #10CHF for 1st place and so on.
+    @finalRanks = []
     @zoom_scale = 0.1
     @zoom_level = 0 #the nestedness of the zoom
     @previous_angle = Math.PI/2
@@ -48,7 +55,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://129.132.183.7:8080/"
+    @serverURL = "http://129.132.183.7:8070/"
     @registered = false
     @customIdentity = Math.random().toString(36).substring(5)
     
@@ -72,7 +79,6 @@ class window.rank_experiment
       pt2 = pt.matrixTransform(transformation_matrix.inverse())  
       return pt2
    
-  
    #for now return the full server response to queryRound, but in principle can return just a flag          
    send = (theURL, _data) =>
       serverResponse = null
@@ -81,23 +87,31 @@ class window.rank_experiment
         @gameMode = false
         clearTimeout(@loadmetimer)
       processServerResponse = (response, status) =>
-        if status != "success" and status != "error"
-          alert("Network problems "+status)
+        if status != "success" or status == "error"          
           @gameMode = false
+          @registered = false
           clearTimeout(@loadmetimer)
         else #success          
           if response.responseText.indexOf("inprogress")  != -1
             alert("Sorry, the game has already started")
             @gameMode = false
+            @registered = false
           else if response.responseText.indexOf("roundfinished")  != -1
             alert("Sorry, you have been disconnected from the game due to network problems.")
+            @registered = false
             @gameMode = false
           else if response.responseText.indexOf("finished") != -1
             alert("The game has already finished")
+            @registered = false
             @gameMode = false
-          else if response.responseText.indexOf("maxrounds") != -1
-            @maxGameRounds = parseInt(response.responseText.split(" ")[1])    
+          else if response.responseText.indexOf("maxroundsstages") != -1
+            @maxGameRounds = parseInt(response.responseText.split(" ")[1])
+            @maxGameStages = parseInt(response.responseText.split(" ")[2])
             @registered = true
+          else if response.responseText.indexOf("insane") != -1
+            alert("Sorry, you have been disconnected from the game due to network problems.")
+            @registered = false
+            @gameMode = false  
                 
         serverResponse = response.responseText
                   
@@ -118,11 +132,11 @@ class window.rank_experiment
       
     
    queryRound = (data) =>      
-      #send a POST request asking for rank info about the current level
+      #send a POST request asking for rank info about the current level and current stage
       if not @gameMode
         $(this).triggerHandler(type:"stopGame")
         return true
-      srvResponse = send(@serverURL,"rank "+@nextLevel)      
+      srvResponse = send(@serverURL,"rank "+@nextLevel + " " + @nextStage)      
       console.log("Server said " + srvResponse)
       if srvResponse.indexOf("urrank") != -1        
         addListeners()
@@ -131,7 +145,7 @@ class window.rank_experiment
           @initialEstimate = srvResponse.split(" ")[3]
           setEstimateAngle(@initialEstimate) #in radians
         #the +1 here is just because humans are used to indexing from 1.
-        console.log("My rank at the beginning of round " + (@nextLevel+1) + " is: " + @currentRank)
+        console.log("My rank at the beginning of round " + (@nextLevel+1) + " and stage " + (@nextStage+1)+" is: " + @currentRank)
         updateRankInfo()
         updateGameTextDiv(true)
         #decide to disconnect randomly before sending estimate
@@ -143,34 +157,36 @@ class window.rank_experiment
         #decide to disconnect randomly before sending rank request, but after sending estimate
         #if Math.random() < 0.2
         #  $(this).triggerHandler(type:"stopGame")
-        #  return true      
-            
+        #  return true                  
         return true
       
       setTimeout((-> queryRound(data)),3000)
    
-   ###
+  
    autoGuess = () =>
       if @rankText.textContent!= "" and @gameMode
          @rankText.textContent="Your current rank: " 
       
       #should we send the click to the server?
       if @gameMode
-         if @nextLevel < @maxGameRounds
-            resetZoom(false)
-            send(@serverURL,"estimate "+@nextLevel + " " + Math.random()*175 + 1)       
-            @nextLevel++     
-            #show wait for all players
-            updateGameTextDiv(false)
-            removeListeners()
-            $(this).triggerHandler(
-                type:"queryServer",
-                var1:'Howdy',
-                information:'I could pass something here also'
-            )
-          else #stop game
+        if @nextStage < @maxGameStages
+            if @nextLevel < @maxGameRounds
+              @miscInfo.textContent = ""
+              resetZoom(false)
+              #wait a bit
+              ms=2000
+              ms += new Date().getTime();
+              while (new Date() < ms)
+                g=5
+              send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + @previous_angle*180/Math.PI)           
+              @nextLevel++     
+              #show wait for all players
+              updateGameTextDiv(false)
+              removeListeners()
+              $(this).triggerHandler(type:"queryServer")
+        else #stop game
               $(this).triggerHandler(type:"stopGame")
-   ###         
+           
   
    loadme = () =>
       @gameTextWebSymbols.innerHTML = @loaderSymbols[@loaderIndex]      
@@ -186,23 +202,32 @@ class window.rank_experiment
         #reset style and class to default
         @gameText.setAttribute("style","")
         @gameTextWebSymbols.setAttribute("class","websymbols")
-        @gameText.textContent = "Please wait for the other players"        
-        $(this).triggerHandler(
-           type:"loadme",               
-        )       
+        @gameText.textContent = "Please wait for the other players"
+        $(this).triggerHandler(type:"loadme")       
       else
         clearTimeout(@loadmetimer)
         @gameTextWebSymbols.innerHTML = ""
         @gameText.setAttribute("style","font-weight:bold;")
         @gameTextWebSymbols.setAttribute("class","")
-        if @nextLevel == (@maxGameRounds-1)
-            @gameText.textContent = "Last Round " + (@nextLevel+1)
+        if @gameMode
+          if @nextLevel == (@maxGameRounds-1)
+            @gameText.textContent = "Stage " + (@nextStage+1)+ ", Last Round " + (@nextLevel+1) 
             @gameTextWebSymbols.textContent = ": please make a guess. "
-        else if @nextLevel == @maxGameRounds
+          else if @nextLevel == @maxGameRounds
             @gameText.setAttribute("style","")
-            @gameText.textContent = "Thank you for playing the game. You can close your browser now."
-        else            
-            @gameText.textContent = "Round " + (@nextLevel+1)
+            @gameText.textContent = "This is the end of Stage " + (@nextStage + 1)+". Click \"Next\" to begin "
+            if (@nextStage+1)<(@maxGameStages-1)              
+              @gameText.textContent = @gameText.textContent + "Stage " + (@nextStage+2) + "."
+              $(this).triggerHandler(type:"nextStage")              
+            else if (@nextStage+1)==(@maxGameStages-1)               
+              @gameText.textContent = @gameText.textContent + "the last Stage " + (@nextStage+2) + "."              
+              $(this).triggerHandler(type:"nextStage")
+            else
+              @gameText.textContent = "This is the end of the game. Thank you for playing. Click \"Next\" to see a summary of your performance."
+              @gameMode = false
+              $(this).triggerHandler(type:"summary")    
+          else            
+            @gameText.textContent = "Stage "+(@nextStage+1)+", Round " + (@nextLevel+1)
             @gameTextWebSymbols.textContent = ": \n please make a guess."            
             if @nextLevel == 0
               @miscInfo.textContent = "The random initial guess assigned to you is indicated by the red circle."         
@@ -212,9 +237,121 @@ class window.rank_experiment
       if @nextLevel == 0
         @rankText.textContent = @username+", your initial rank is: "+@currentRank
       else if @nextLevel == @maxGameRounds
-        @rankText.textContent = @username+", your final rank is: "+@currentRank 
+        @rankText.textContent = @username+", your final rank for stage " + (@nextStage+1) + " is: "+@currentRank
+        @finalRanks[@nextStage] = parseInt(@currentRank.split("(")[0]) #save the final rank for this stage        
       else
         @rankText.textContent = @username+", your rank at the end of round " + @nextLevel + " is: "+@currentRank
+   
+   nextStage = () =>
+     removeListeners()     
+     #create the "Next" button
+     nbutton=document.createElement("button")
+     nbutton.setAttribute("type","button")
+     nbutton.setAttribute("id","next_stage")
+     nbutton.setAttribute("class","nextbutton")     
+     nbuttonText = document.createElement("text")
+     nbuttonText.setAttribute("class","nextbuttontext")
+     nbuttonText.innerHTML = "Next"
+     nbutton.appendChild(nbuttonText)
+     @miscInfoDiv.appendChild(nbutton)
+     #the div with id="playerinfo"
+     @gameText.parentNode.setAttribute("style","height:20%;width:100%;float:left;") 
+     @miscInfoDiv.setAttribute("style","height:80%;width:100%;float:left;")     
+     nbutton.onclick = nextStageEvent
+     #reset the display
+     ###
+     @gameText.parentNode.setAttribute("style","height:10%;width:100%;float:left;") 
+     @miscInfoDiv.setAttribute("style","height:90%;width:100%;float:left;")     
+     nbutton.parentNode.removeChild(nbutton)
+     @nextStage++     
+     @nextLevel = 0
+     @currentRank = ""
+     updateGameTextDiv(false)
+     #notify the server that we are ready for the next stage
+     send(@serverURL,"ready "+@nextStage)
+     if @rankText.textContent!= "" and @gameMode
+        @rankText.textContent="Waiting for other players."     
+     $(this).triggerHandler(type:"queryServer")
+     ###
+     
+          
+   nextStageEvent = () =>
+     #reset the display
+     @gameText.parentNode.setAttribute("style","height:10%;width:100%;float:left;") 
+     @miscInfoDiv.setAttribute("style","height:90%;width:100%;float:left;")
+     nbutton=document.getElementById("next_stage")
+     nbutton.parentNode.removeChild(nbutton)
+     @nextStage++     
+     @nextLevel = 0
+     @currentRank = ""
+     updateGameTextDiv(false)
+     #notify the server that we are ready for the next stage
+     send(@serverURL,"ready "+@nextStage)
+     if @rankText.textContent!= "" and @gameMode
+        @rankText.textContent="Waiting for other players."     
+     $(this).triggerHandler(type:"queryServer")
+                  
+   summary = () =>
+     #create the "Next" button
+     nbutton=document.createElement("button")
+     nbutton.setAttribute("type","button")
+     nbutton.setAttribute("id","summary")
+     nbutton.setAttribute("class","nextbutton")     
+     nbuttonText = document.createElement("text")
+     nbuttonText.setAttribute("class","nextbuttontext")
+     nbuttonText.innerHTML = "Summary"
+     nbutton.appendChild(nbuttonText)
+     @miscInfoDiv.appendChild(nbutton)
+     #the div with id="playerinfo"
+     @gameText.parentNode.setAttribute("style","height:20%;width:100%;float:left;") 
+     @miscInfoDiv.setAttribute("style","height:80%;width:100%;float:left;")     
+     nbutton.onclick = summaryEvent
+     
+   summaryEvent = () =>
+     @gameText.parentNode.setAttribute("style","height:10%;width:100%;float:left;") 
+     @miscInfoDiv.setAttribute("style","height:90%;width:100%;float:left;")
+     nbutton=document.getElementById("summary")
+     nbutton.parentNode.removeChild(nbutton)
+     #tell the server we are done     
+     @gameMode = false
+     send(@serverURL,"finito")
+     total = 0
+     for i in [1..@maxGameStages]
+        #add row   
+        row = document.createElement("tr")
+        cell0 = document.createElement("th")
+        cell0.appendChild(document.createTextNode("Stage "+i))
+        cell1 = document.createElement("td")
+        cell1.appendChild(document.createTextNode(@finalRanks[i-1]))
+        cell2 = document.createElement("td")
+        payoff=""        
+        if @finalRanks[i-1] < 4
+          payoff = @payoffs_per_stage[@finalRanks[i-1]-1] + " CHF"
+          total = total + @payoffs_per_stage[@finalRanks[i-1]-1]
+        else 
+          payoff = "0 CHF"
+        cell2.appendChild(document.createTextNode(payoff))
+        row.appendChild(cell0)
+        row.appendChild(cell1)
+        row.appendChild(cell2)
+        @tbody.appendChild(row)
+     totalrow = document.createElement("tr") 
+     cell0 = document.createElement("th")
+     cell0.appendChild(document.createTextNode("Total"))
+     cell1 = document.createElement("td")
+     cell2 = document.createElement("td")
+     cell2.appendChild(document.createTextNode(total + " CHF"))
+     totalrow.appendChild(cell0)   
+     totalrow.appendChild(cell1)
+     totalrow.appendChild(cell2)
+     @tbody.appendChild(totalrow)
+     table = document.createElement("table")     
+     table.setAttribute("class","summary_table")
+     table.appendChild(@tbody)
+     @gameTextDiv.parentNode.removeChild(@gameTextDiv)
+     @circleCanvas.parentNode.removeChild(@circleCanvas)
+     @circleCanvasDiv.appendChild(table)    
+     @rankText.textContent = "Thank you "+@username+" for playing. You can close the page now."
    
    ccMouseWheel = (event) =>
    
@@ -355,20 +492,17 @@ class window.rank_experiment
       
       #should we send the click to the server?
       if @gameMode
-         if @nextLevel < @maxGameRounds
-            @miscInfo.textContent = ""
-            resetZoom(false)
-            send(@serverURL,"estimate "+@nextLevel + " " + @previous_angle*180/Math.PI)           
-            @nextLevel++     
-            #show wait for all players
-            updateGameTextDiv(false)
-            removeListeners()
-            $(this).triggerHandler(
-                type:"queryServer",
-                var1:'Howdy',
-                information:'I could pass something here also'
-            )
-          else #stop game
+        if @nextStage < @maxGameStages
+            if @nextLevel < @maxGameRounds
+              @miscInfo.textContent = ""
+              resetZoom(false)
+              send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + @previous_angle*180/Math.PI)           
+              @nextLevel++     
+              #show wait for all players
+              updateGameTextDiv(false)
+              removeListeners()
+              $(this).triggerHandler(type:"queryServer")
+        else #stop game
               $(this).triggerHandler(type:"stopGame")
     
    
@@ -399,7 +533,8 @@ class window.rank_experiment
         
    next = () =>
         if @buttonNextText.innerHTML == "Start" and @gameMode != true
-            @gameMode = true
+            @gameMode = true            
+            #start polling like a boss
             $(this).triggerHandler(type:"startGame")
         else if @instructionIndex < 3
             if  @userNameInput.value == ""               
@@ -431,8 +566,10 @@ class window.rank_experiment
             
               resetZoom(true)
         
-    startGame = () =>
+   startGame = () =>
      if @registered
+        #notify the server that this agent has finished the intructions
+        send(@serverURL,"doneinstructions")
         resetZoom(true)
         removeListeners()
         @instructionsDiv.parentNode.removeChild(@instructionsDiv)            
@@ -441,21 +578,18 @@ class window.rank_experiment
         @buttonNext.parentNode.removeChild(@buttonNext)
         @buttonPrevious.parentNode.removeChild(@buttonPrevious)
         @rankText.textContent="Waiting for other players."
-        $(this).triggerHandler(
-          type:"queryServer",
-          var1:'Howdy'          
-        )
+        $(this).triggerHandler(type:"queryServer")
       else
         alert("You have not properly registered for the game.")
         @gameMode = false
       
-    stopGame = () =>
+   stopGame = () =>
       @gameMode = false
       updateGameTextDiv(true)   
       updateRankInfo()
       addListeners()
    
-    prev = () =>  
+   prev = () =>  
       @flip = 0
       @gameMode = false
       @buttonPrevious.disabled=false
@@ -480,14 +614,16 @@ class window.rank_experiment
       "The purpose of the game is to find out the location of a hidden point " +
       "randomly positioned on the blue circle to the left."+
       "You will compete with other players, and your performance, as well as reward, "+
-      "will be based on how close your final guess is to the hidden point, compared to others.\n\r"+
-      "The game consists of 10 rounds. During each round, you make a guess "+
+      "will be based on how close your guess is to the hidden point, compared to others.\n\r"+
+      "The game consists of 5 identical stages. Each stage, in turn, consists of 10 rounds."+
+      "During each round, you make a guess "+
       "by moving the green line around the circle and clicking on a desired position. "+
-      "A round finishes when all players have made their choices.\n\r"+
-      "At the beginning of each round, you will be informed of your relative ranking. "+
+      "A round finishes when all players have made their choices. A stage finishes after round 10 is over.\n\r"+
+      "At the beginning of round 1 of each stage, you will be assigned a random guess. It is used to calculate your starting rank for this stage."+      
       "Your rank is 1 if you are the player currently closest to the hidden point. "+
-      "Conversely, if you are farthest from the point, you rank last.\n\r" +
-      "Your starting rank for round 1 will be determined randomly.\n\r" +  
+      "Similarly, if you are farthest from the point, you rank last.\n\r" +
+      "Your payoff is based on your final rank at the end each stage. Rank 1 is worth 10 CHF, Rank 2 - 6 CHF, and Rank 3 - 4 CHF. For example, if you consistently"+
+      " finish first in all 5 stages, your reward will be 10*5= 50 CHF.\n\r"+
       "To continue, enter a username in the box below and click \"Next\" for a quick practice."
       
       @instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ..."
@@ -495,17 +631,17 @@ class window.rank_experiment
       @instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel.\n\r" +                              
                               "Try zooming in and out a few times to get used to this functionality ... "
       
-      @instructionVector[3] = "Finally, your rank for the previous round is displayed above the circle. "+
-                              "The number in the brackets shows the current number "+
+      @instructionVector[3] = "Finally, your rank at the end of the previous round is displayed above the circle. "+
+                              "In this example, the number in the brackets shows the current number "+
                               "of connected players. This number, together with your rank, will be updated at the end of each round, after all players "+ 
-                              " have submitted their estimates. "+
-                              "Your rank will be presented to you at the beggining of each new round.\n\r"+ 
+                              " have submitted their guesses. "+
+                              "At the beggining of each new round, you will be shown your rank from the previous one.\n\r"+ 
                               
                               "With this last bit of information, the practice session ends. You can continue "+
                               "playing with the circle or "+
-                              "you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r"+
+                              "you can go back to read the instructions again. If anything is left unclear, please ask the administrator in chat.\n\r"+
                               "Once you are ready, hit \"Start\" to begin the game. " +
-                              "You will be assigned a random initial estimate, indicated by the red circle, on which your initial rank will be based."
+                              "You will be assigned a random initial estimate (indicated by the red circle) on which your initial rank will be based."
                               
                               
      
@@ -530,6 +666,20 @@ class window.rank_experiment
       if (@isFirefox)
         @circleCanvas.removeEventListener("DOMMouseScroll",ccMouseWheel,false)
         
+        
+   initSummaryTable = () =>
+     #create the heading
+     toprow =  document.createElement("tr")
+     cell0 = document.createElement("th")
+     cell1 = document.createElement("th")
+     cell1.appendChild(document.createTextNode("Final Rank"))
+     cell2 = document.createElement("th")
+     cell2.appendChild(document.createTextNode("Payoff"))
+     toprow.appendChild(cell0)
+     toprow.appendChild(cell1)
+     toprow.appendChild(cell2)
+     @tbody.appendChild(toprow)
+     #console.log(@finalRanks)       
    
    init = () =>   
       #sanity check
@@ -544,16 +694,20 @@ class window.rank_experiment
       @buttonPrevious.disabled=true
       
       initInstructions()
+      initSummaryTable()
      
       console.log(send(@serverURL,"announce"))
       $(this).on("queryServer",queryRound)
       $(this).on("startGame",startGame)
       $(this).on("stopGame",stopGame)
       $(this).on("loadme",loadme)
+      $(this).on("nextStage",nextStage)
+      $(this).on("summary",summary)      
       #$(this).on("autoGuess",autoGuess)   
       #START THE GAME IMMEDIATELY
       #@gameMode = true
       #$(this).triggerHandler(type:"startGame")
+     
     
    init()
 

@@ -13,35 +13,35 @@ height: 100%;
 
 @keyframes radioactivebuttons 
 {
-	from {background-color:#0000FF;
+	from {background-color:#CEEC93;
 	box-shadow: 0 0 9px #333;}
-	50% {
-		background-color: #3C3CFC;
-		box-shadow:0 0 18px #3C3CFC;
+	80% {
+		background-color: #9DD929;
+		box-shadow:0 0 18px #9DD929;
 	}
-	to {background-color:#0000FF;}
+	to {background-color:#CEEC93;}
 }
 
 @-moz-keyframes radioactivebuttons 
 {
-    from {background-color:#0000FF;
+	from {background-color:#CEEC93;
 	box-shadow: 0 0 9px #333;}
-	50% {
-		background-color: #3C3CFC;
-		box-shadow:0 0 18px #3C3CFC;
+	80% {
+		background-color: #9DD929;
+		box-shadow:0 0 18px #9DD929;
 	}
-	to {background-color:#0000FF;}
+	to {background-color:#CEEC93;}
 }
 
 @-webkit-keyframes radioactivebuttons
 {
-	from {background-color:#0000FF;
+	from {background-color:#CEEC93;
 	box-shadow: 0 0 9px #333;}
-	50% {
-		background-color: #3C3CFC;
-		box-shadow:0 0 18px #3C3CFC;
+	80% {
+		background-color: #9DD929;
+		box-shadow:0 0 18px #9DD929;
 	}
-	to {background-color:#0000FF;}
+	to {background-color:#CEEC93;}
 }
 
 
@@ -69,13 +69,13 @@ height: 100%;
 	font-family: 'WebSymbolsRegular', cursive;
 	border-radius:10px;
     color: white;
-    size: auto
+    size: auto;
     text-decoration:none;
     font-weight: bold;
     font-size: 20px;
     text-shadow: 1px 1px 2px rgba(255,255,255,0.5);   
     line-height: 0px;
-    background-color: blue; 
+    background-color: #9DD929; 
     -webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
@@ -84,7 +84,7 @@ height: 100%;
 	user-select: none;
 	cursor: hand;
 	cursor:pointer;
-	animation-name: radioactivebuttons;
+	/*animation-name: radioactivebuttons;
 	animation-duration: 0.7s;
 	animation-iteration-count: infinite;
 	-webkit-animation-name: radioactivebuttons;
@@ -92,7 +92,7 @@ height: 100%;
 	-webkit-animation-iteration-count: infinite;
 	-moz-animation-name: radioactivebuttons;
 	-moz-animation-duration: 0.7s;
-	-moz-animation-iteration-count: infinite;
+	-moz-animation-iteration-count: infinite;*/
 }
 
 .nextbuttontext {
@@ -111,11 +111,6 @@ height: 100%;
 	-webkit-animation-name: off;
     animation-name: off;
 	-moz-animation-name: off;
-	/*
-    box-shadow: 
-        0px 1px 15px rgba(255,255,255,1.8) inset, 
-        1px 1px 5px rgba(255,255,255,1.8);
-    */ 
 }
 
 .nextbutton:disabled {
@@ -143,7 +138,7 @@ height: 100%;
 .prevbutton {
 	padding: 20px 11px 20px 12px;
 	border-radius:10px;
-    background-color: blue;	
+    background-color: #9DD929;	
     font-size: 20px;
     text-decoration: none;
     color: white;
@@ -180,6 +175,22 @@ height: 100%;
   */   
 }
 
+.textarea_vScrollBar {
+    border-style: none; 
+    border-color: Transparent; 
+    background-color:white;
+    overflow-x: hidden;
+    overflow-y:auto;
+    text-align:left;
+    font-size:18px;
+    font-family:helvetica, arial, sans-serif;
+    resize:none;
+    -moz-user-select: none; /* for FireFox */
+    -webkit-user-select: none; /* for Chrome and Safari */
+    -khtml-user-select: none;
+	
+}
+
 textarea { 
     border-style: none; 
     border-color: Transparent; 
@@ -193,5 +204,60 @@ textarea {
     -webkit-user-select: none; /* for Chrome and Safari */
     -khtml-user-select: none;
 }
-  
+
+
+table.summary_table{
+    font-family: "Trebuchet MS", sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.4em;
+    font-style: normal;
+    border-collapse:separate;
+}
+
+.summary_table th{
+    padding:15px;
+    color:#fff;
+    text-shadow:1px 1px 1px #568F23;
+    border:1px solid #93CE37;
+    border-bottom:3px solid #9ED929;
+    background-color:#9DD929;
+    background:-webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.02, rgb(123,192,67)),
+        color-stop(0.51, rgb(139,198,66)),
+        color-stop(0.87, rgb(158,217,41))
+        );
+    background: -moz-linear-gradient(
+        center bottom,
+        rgb(123,192,67) 2%,
+        rgb(139,198,66) 51%,
+        rgb(158,217,41) 87%
+        );
+    -webkit-border-top-left-radius:5px;
+    -webkit-border-top-right-radius:5px;
+    -moz-border-radius:5px 5px 0px 0px;
+    border-top-left-radius:5px;
+    border-top-right-radius:5px;
+}
+
+
+.summary_table th:empty{
+    background:transparent;
+    border:none;
+}
+
+.summary_table td{
+    padding:10px;
+    text-align:center;
+    background-color:#DEF3CA;
+    border: 2px solid #E7EFE0;
+    -moz-border-radius:2px;
+    -webkit-border-radius:2px;
+    border-radius:2px;
+    color:#666;
+    text-shadow:1px 1px 1px #fff;
+}
 

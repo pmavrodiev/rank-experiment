@@ -20,9 +20,9 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 public class MyHandlers {
 
 	public static class CLIENT extends AbstractHandler {
-		public static int myport = 8080;
+		public static int myport = 8070;
 		public static DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-		public static Log log = new Log(true);
+		public static Log log = new Log(false);
 
 		private String getUserName(HttpServletRequest request) throws IOException {
 			Enumeration<String> headerNames = request.getHeaderNames();
@@ -37,7 +37,7 @@ public class MyHandlers {
 			return customIdentity;			
 		}
 
-		
+
 		private String getHex(HttpServletRequest request) throws IOException {
 			Enumeration<String> headerNames = request.getHeaderNames();
 			String customIdentity="";
@@ -72,7 +72,7 @@ public class MyHandlers {
 				response.setContentType("text/html;charset=utf-8");			
 				response.setStatus(HttpServletResponse.SC_OK);
 				if (baseRequest.getMethod().equals("POST")) {
-					/*Get the POST payload*/
+					/*Get the POST payload*/					
 					String payload = getPOSTpayLoad(request);
 					String hex = getHex(request);					
 					String ip = baseRequest.getConnection().getEndPoint().getRemoteAddr();
@@ -96,7 +96,7 @@ public class MyHandlers {
 								/*update announcement time*/							
 								alreadyAnnounced.reg_begin = dateFormat.format(new Date());
 								GUI.updateGUITable(alreadyAnnounced,GUI.RE_ANNOUNCE);
-								response.getWriter().print("maxrounds "+GUI.gameRounds);
+								response.getWriter().print("maxroundsstages "+GUI.gameRounds+ " "+GUI.gameStages);
 							}
 
 							else {
@@ -105,10 +105,9 @@ public class MyHandlers {
 								ClientLog newClient = new ClientLog(ip,hex,dateFormat.format(new Date()),null,GUI.clients.size(),UniformDistribution.pi_uniform());
 								synchronized (this) {									
 									GUI.clients.put(hex, newClient);
-									GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client
-									GUI.activeClients++;
+									GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client									
 								}
-								response.getWriter().print("maxrounds "+GUI.gameRounds);
+								response.getWriter().print("maxroundsstages "+GUI.gameRounds+ " "+GUI.gameStages);
 							}
 						}
 					}
@@ -121,22 +120,27 @@ public class MyHandlers {
 							 * if the round can be started, update Round_X_BEGIN*/
 							String[] tokenize_payload = payload.split("\\s");
 							ClientLog oldClient = GUI.clients.get(hex);
-							
+
 							try {
 								Integer requestedRound = new Integer(tokenize_payload[1]);
+								Integer requestedStage = new Integer(tokenize_payload[2]);
 								if (requestedRound < GUI.next_round-1) {
 									response.getWriter().print("roundfinished");
 									baseRequest.setHandled(true);
 									return;
 								}
-								if (GUI.gameRoundsStates[requestedRound]) {//game round started?
+								if (requestedStage < GUI.next_stage - 1) {
+									response.getWriter().print("stagefinished");
+									baseRequest.setHandled(true);
+									return;
+								}
+								if (GUI.gameStagesStates[requestedStage] && GUI.gameRoundsStates[requestedRound]) {
 									/*update the username info*/
-									if (requestedRound == 0) {
+									if (requestedRound == 0 && requestedStage == 0) {
 										String username = getUserName(request);
 										oldClient.username = username;
 										GUI.updateGUITable(oldClient, GUI.USERNAME);
 									}
-									
 									int myRank = GUI.currentRanks.get(oldClient.id);
 									double initialOffsetEstimate = (GUI.currentEstimates.get(oldClient.id)+oldClient.personalOffset)*Math.PI/180; //in radians									
 									oldClient.getRound(requestedRound).setRank(myRank);
@@ -149,16 +153,10 @@ public class MyHandlers {
 										/*round requestedRound begins*/
 										oldClient.initNewRound(clientTime, requestedRound);
 										GUI.updateGUITable(oldClient,GUI.ROUND_BEGIN);								
-										if (requestedRound == 0) {								
-											oldClient.reg_end = clientTime;
-											GUI.updateGUITable(oldClient,GUI.REG_END);
-										}
 									}
-
-								}
-								else {
+								} //end if GUI.gameStagesStates[requestedStage]
+								else
 									response.getWriter().print("wait "+requestedRound);
-								}
 							}
 							catch (NumberFormatException e) {
 								response.getWriter().print("malformed request " + payload);
@@ -173,11 +171,12 @@ public class MyHandlers {
 						String[] tokenize_payload = payload.split("\\s");
 						try {							
 							Integer estimateForRound = new Integer(tokenize_payload[1]);
-							Double clientEstimate = new Double(tokenize_payload[2]);
+							Integer estimateForStage = new Integer(tokenize_payload[2]);
+							Double clientEstimate = new Double(tokenize_payload[3]);
 							String clientTime = dateFormat.format(new Date());
 							/* sanity check */
-							if (!GUI.gameRoundsStates[estimateForRound]) {
-								log.println("Sanity check failed: Client " + hex +" submitted estimate for finished round.");
+							if (!GUI.gameRoundsStates[estimateForRound] || !GUI.gameStagesStates[estimateForStage]) {
+								log.println("Sanity check failed: Client " + hex +" submitted estimate either for a finished round or a finished stage.");
 								response.getWriter().print("roundfinished");
 							}
 							else {
@@ -192,9 +191,47 @@ public class MyHandlers {
 						catch (NumberFormatException e) {
 							response.getWriter().print("malformed request " + payload);
 						}
-
-
 					}
+					else if (payload.indexOf("ready") != -1 ) {
+						//ready for the next stage
+						String[] tokenize_payload = payload.split("\\s");
+						try {							
+							Integer readyForStage = new Integer(tokenize_payload[1]);							
+							String clientTime = dateFormat.format(new Date());
+							/* sanity check */
+							/* must be ready for a valid game stage AND that stage must be disabled at the moment*/
+							if (readyForStage < GUI.gameStages && !GUI.gameStagesStates[readyForStage]) {
+								response.getWriter().print("ok");
+								ClientLog oldClient = GUI.clients.get(hex);								
+								oldClient.stagesEndTime.add(clientTime);
+								GUI.updateGUITable(oldClient,GUI.STAGE_END);
+
+							}
+							else 
+								response.getWriter().print("insane");
+
+						}
+						catch (NumberFormatException e) {
+							response.getWriter().print("malformed request " + payload);
+						}
+					}
+					else if (payload.indexOf("doneinstructions") != -1) {
+						GUI.activeClients++;
+						String clientTime = dateFormat.format(new Date());
+						ClientLog client = GUI.clients.get(hex);
+						client.reg_end = clientTime;			
+						client.validClient = true;
+						GUI.updateGUITable(client,GUI.REG_END);
+						response.getWriter().print("ok");
+					}		
+					else if (payload.indexOf("finito") != -1) {
+						String clientTime = dateFormat.format(new Date());
+						ClientLog client = GUI.clients.get(hex);
+						client.stagesEndTime.add(clientTime);
+						GUI.updateGUITable(client,GUI.STAGE_END);
+						response.getWriter().print("ok");
+					}
+
 					else {response.getWriter().print("unknown_request");					}
 				}
 				baseRequest.setHandled(true);			

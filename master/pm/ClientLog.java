@@ -37,14 +37,16 @@ public class ClientLog {
 	public String reg_begin;
 	public String reg_end;
 	public Vector<gameRound> gameRounds = new Vector<gameRound>(GUI.gameRounds);
+	public Vector<String> stagesEndTime = new Vector<String>(GUI.gameStages); //the end times of each stage, i.e. when the client finished the given stage	
 	public int currentRound; //the current round where the client is
+	
 	public double personalOffset; //the agent's personal offset	
 	public boolean validClient; //checks to see if the client has disconnected at some point
 	public String username;
 	
 	public ClientLog(String client_ip,String hex ,String reg_begin,String reg_end,int id, double personal_offset) {
 		this.username = null;
-		this.validClient = true;
+		this.validClient = false;
 		this.personalOffset = personal_offset;
 		this.id = id;
 		this.client_ip = client_ip;
@@ -52,6 +54,7 @@ public class ClientLog {
 		this.reg_begin = reg_begin;
 		this.reg_end = reg_end;
 		this.currentRound = 0;
+		
 		for (int i=0; i<(GUI.gameRounds+1); i++)
 			gameRounds.add(new gameRound());
 	}
