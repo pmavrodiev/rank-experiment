@@ -1,0 +1,15 @@
+From the morning session:
+
+2012_28_08_11_47.db - Server crashed after the first stage. Canceled the rest.
+2012_28_08_12_00.db - The first two stages only were done.
+
+Comments: The morning session had a flaw. The initial offset for each stage were the same. Fixed in the afternoon session. 
+
+
+From the afternoon session:
+
+
+2012_28_08_15_40.db - All 5 stages (10 rounds per stage) were done. 20 seconds disconnect rule was enforced.
+
+2012_28_08_16_10.db - Identical to 2012_28_08_15_40.db
+

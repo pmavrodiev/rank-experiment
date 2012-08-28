@@ -1,0 +1,19 @@
+1. Hard to get a controlled environment in an online setting. People
+are not focused on the game all the time, rather tend to get
+distracted while waiting for the others (e.g. browse other stuff,
+check emails, etc.). This causes delayed responses, which makes other
+players, who need to wait long, frustrated.
+
+
+2. From 1. we need a controlled environment - check Lab.
+
+3. 5 stages and 10 rounds seems ok. We can do 4 sessions with 15-20
+people in each sessions. In total that's 60-80 people. 
+
+4. Check the system size effects. MZ correctly pointed out that with
+fewer people, one is less confident in his guess, even for low
+ranks. In essence, a person with rank 1 out of 6 will feel more unsure
+that a person with rank 1 out of 20.
+
+5. Automate the server a bit. In case all players have submitted an
+estimate for a given round, start the next round automatically. 

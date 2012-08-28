@@ -318,6 +318,7 @@ public class GUI extends JFrame {
 						/*check if all clients have finished the stage*/
 						for (int i=0; i<model.getRowCount(); i++) {
 							ClientLog client = clients.get(model.getValueAt(i,1));
+							client.personalOffset = UniformDistribution.pi_uniform();							
 							if (model.getValueAt(i, model.getColumnCount()-2) == null) {
 								if (client.validClient) { //if check fails, this client has already been invalidated
 									activeClients--; // this guys is out
@@ -344,12 +345,13 @@ public class GUI extends JFrame {
 						int rowCount = oldModel.getRowCount();
 						for (int i = 0; i < rowCount; i++) {
 							ClientLog client = clients.get(oldModel.getValueAt(i, 1));
+							Double clientOffset = client.personalOffset;
 							if (client.validClient) {
 								newModel.addRow(new Object[] {
 										oldModel.getValueAt(i, 0),
 										oldModel.getValueAt(i, 1),
 										oldModel.getValueAt(i, 2),
-										oldModel.getValueAt(i, 3),
+										clientOffset,
 										null,
 										null,
 										null,
@@ -578,33 +580,22 @@ public class GUI extends JFrame {
 		frame.pack();
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
-		/*
-		 * SwingUtilities.invokeLater(new Runnable() {
-		 * 
-		 * @Override public void run() { GUI frame = new GUI(myServer); pOut =
-		 * frame.new ReaderThread(piOut); pErr = frame.new ReaderThread(piErr);
-		 * frame.setDefaultCloseOperation(GUI.EXIT_ON_CLOSE);
-		 * frame.setTitle("Server Control Monitor");
-		 * frame.getContentPane().setPreferredSize(frame.getSize());
-		 * frame.pack(); frame.setLocationRelativeTo(null);
-		 * frame.setVisible(true); pOut.start(); pErr.start(); } });
-		 */
 	}
 
 	public static void initOutputRedirect() {
 		/* re-direct the default output and error streams */
 		// Set up System.out
-		/*
-		 * try { poOut = new PipedOutputStream(piOut); System.setOut(new
-		 * PrintStream(poOut, true)); } catch (IOException e) {
-		 * 
-		 * e.printStackTrace(); } // Set up System.err try { poErr = new
-		 * PipedOutputStream(piErr); System.setErr(new PrintStream(poErr,
-		 * true)); } catch (IOException e) {
-		 * 
-		 * e.printStackTrace(); } pOut = new ReaderThread(piOut); pErr = new
-		 * ReaderThread(piErr); pOut.start(); pErr.start();
-		 */
+		
+		  try { poOut = new PipedOutputStream(piOut); System.setOut(new
+		  PrintStream(poOut, true)); } catch (IOException e) {
+		  
+		  e.printStackTrace(); } // Set up System.err 
+		  try { poErr = new PipedOutputStream(piErr); System.setErr(new PrintStream(poErr,
+		  true)); } catch (IOException e) {
+		  
+		  e.printStackTrace(); } pOut = new ReaderThread(piOut); pErr = new
+		  ReaderThread(piErr); pOut.start(); pErr.start();
+		 
 	}
 
 	public static void stopOutputRedirect() throws IOException {

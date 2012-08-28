@@ -14,6 +14,8 @@ class window.rank_experiment
     @gameTextWebSymbols = document.getElementsByClassName("websymbols")[0]
     @miscInfoDiv = document.getElementById("miscinfo")    
     @miscInfo = document.getElementById("miscinfotext")
+    @timer = document.getElementById("timer")
+    @timeleft = document.getElementById("timeleft")
     #drawing elements
     @compositeG=document.getElementById("svgCanvas") 
     @circleCanvas=document.getElementById("circleCanvas")
@@ -32,6 +34,8 @@ class window.rank_experiment
     @loaderSymbols=["0", "1", "2", "3", "4", "5", "6", "7"]
     @loaderRate=100
     @loadmetimer=null
+    @timeout_trigger = null
+    @timelimit = 20 #in seconds
     ### ###
     @maxGameRounds = 0 #obtained from the server upon announcement
     @maxGameStages = 0 #obtained from the server upon announcement
@@ -55,7 +59,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://192.168.1.161:8070/"
+    @serverURL = "http://129.132.183.7:8070/"
     @registered = false
     @customIdentity = Math.random().toString(36).substring(5)
     
@@ -97,7 +101,7 @@ class window.rank_experiment
             @gameMode = false
             @registered = false
           else if response.responseText.indexOf("roundfinished")  != -1
-            alert("Sorry, you have been disconnected from the game due to network problems.")
+            alert("Sorry, you have been disconnected from the game due to timeout.")
             @registered = false
             @gameMode = false
           else if response.responseText.indexOf("finished") != -1
@@ -109,7 +113,7 @@ class window.rank_experiment
             @maxGameStages = parseInt(response.responseText.split(" ")[2])
             @registered = true
           else if response.responseText.indexOf("insane") != -1
-            alert("Sorry, you have been disconnected from the game due to network problems.")
+            alert("Sorry, you have been disconnected from the game due to timeout.")
             @registered = false
             @gameMode = false  
                 
@@ -146,19 +150,19 @@ class window.rank_experiment
           setEstimateAngle(@initialEstimate) #in radians
         #the +1 here is just because humans are used to indexing from 1.
         console.log("My rank at the beginning of round " + (@nextLevel+1) + " and stage " + (@nextStage+1)+" is: " + @currentRank)
-        updateRankInfo()
         updateGameTextDiv(true)
+        updateRankInfo()        
         #decide to disconnect randomly before sending estimate
-        if Math.random() < 0.1
-          $(this).triggerHandler(type:"stopGame")
-          return true      
+        #if Math.random() < 0.1
+        #  $(this).triggerHandler(type:"stopGame")
+        #  return true      
         #SEND AUTOMATIC RANDOM ANGLE TO THE SERVER
-        $(this).triggerHandler(type:"autoGuess")                  
+        #$(this).triggerHandler(type:"autoGuess")                  
         return true
       
       setTimeout((-> queryRound(data)),3000)
    
-  
+   ###
    autoGuess = () =>
       if @rankText.textContent!= "" and @gameMode
          @rankText.textContent="Your current rank: " 
@@ -181,7 +185,7 @@ class window.rank_experiment
               $(this).triggerHandler(type:"queryServer")
         else #stop game
               $(this).triggerHandler(type:"stopGame")
-           
+   ###        
   
    loadme = () =>
       @gameTextWebSymbols.innerHTML = @loaderSymbols[@loaderIndex]      
@@ -231,11 +235,29 @@ class window.rank_experiment
    updateRankInfo = () =>
       if @nextLevel == 0
         @rankText.textContent = @username+", your initial rank is: "+@currentRank
+        @timeleft.textContent = "Time Left: "
+        $(this).triggerHandler(type:"timeout")        
       else if @nextLevel == @maxGameRounds
         @rankText.textContent = @username+", your final rank for stage " + (@nextStage+1) + " is: "+@currentRank
+        @timeleft.textContent = ""
+        @timer.textContent = ""
         @finalRanks[@nextStage] = parseInt(@currentRank.split("(")[0]) #save the final rank for this stage        
       else
         @rankText.textContent = @username+", your rank at the end of round " + @nextLevel + " is: "+@currentRank
+        @timeleft.textContent = "Time Left: "
+        $(this).triggerHandler(type:"timeout")        
+
+   
+   timeout = () =>
+     if @timelimit == -1
+        alert("Timeout. You have been disconnected from the game.")
+        @gameMode = false
+        @registered = false
+        return        
+             
+     @timer.textContent = @timelimit
+     @timelimit=@timelimit-1
+     @timeout_trigger = setTimeout(timeout,1000)   
    
    nextStage = () =>
      removeListeners()     
@@ -253,21 +275,7 @@ class window.rank_experiment
      @gameText.parentNode.setAttribute("style","height:20%;width:100%;float:left;") 
      @miscInfoDiv.setAttribute("style","height:80%;width:100%;float:left;")     
      nbutton.onclick = nextStageEvent
-     #reset the display
-     ###
-     @gameText.parentNode.setAttribute("style","height:10%;width:100%;float:left;") 
-     @miscInfoDiv.setAttribute("style","height:90%;width:100%;float:left;")     
-     nbutton.parentNode.removeChild(nbutton)
-     @nextStage++     
-     @nextLevel = 0
-     @currentRank = ""
-     updateGameTextDiv(false)
-     #notify the server that we are ready for the next stage
-     send(@serverURL,"ready "+@nextStage)
-     if @rankText.textContent!= "" and @gameMode
-        @rankText.textContent="Waiting for other players."     
-     $(this).triggerHandler(type:"queryServer")
-     ###
+    
      
           
    nextStageEvent = () =>
@@ -281,13 +289,13 @@ class window.rank_experiment
      @currentRank = ""
      updateGameTextDiv(false)
      #notify the server that we are ready for the next stage
-     if Math.random() < 0.1
-        $(this).triggerHandler(type:"stopGame")
-        return true       
+     #if Math.random() < 0.1
+     #   $(this).triggerHandler(type:"stopGame")
+     #   return true       
      send(@serverURL,"ready "+@nextStage)
-     if Math.random() < 0.1
-        $(this).triggerHandler(type:"stopGame")
-        return true     
+     #if Math.random() < 0.1
+     #   $(this).triggerHandler(type:"stopGame")
+     #   return true     
      if @rankText.textContent!= "" and @gameMode
         @rankText.textContent="Waiting for other players."     
      $(this).triggerHandler(type:"queryServer")
@@ -473,6 +481,10 @@ class window.rank_experiment
       @zoom_level = 0      
       
    ccMouseClick = (e) =>
+      clearTimeout(@timeout_trigger)
+      @timeleft.textContent = ""
+      @timer.textContent = ""
+      @timelimit = 20      
       e = e || window.event
       coord = getCursorPosition(e)    
       @previous_angle = Math.atan2(coord.y,coord.x)
@@ -619,7 +631,10 @@ class window.rank_experiment
       "The game consists of 5 identical stages. Each stage, in turn, consists of 10 rounds."+
       "During each round, you make a guess "+
       "by moving the green line around the circle and clicking on a desired position. "+
-      "A round finishes when all players have made their choices. A stage finishes after round 10 is over.\n\r"+
+      "A round finishes when all players have made their choices. A stage finishes after round 10 is over.\n\r"+ 
+       "You have 20 seconds to submit a guess. Failure to do so will disconnect you from the game."+
+      "\n\r"+
+      "Note that the position of the hidden point changes in every stage!\n\r"+      
       "At the beginning of round 1 of each stage, you will be assigned a random guess. It is used to calculate your starting rank for this stage."+      
       "Your rank is 1 if you are the player currently closest to the hidden point. "+
       "Similarly, if you are farthest from the point, you rank last.\n\r" +
@@ -703,11 +718,12 @@ class window.rank_experiment
       $(this).on("stopGame",stopGame)
       $(this).on("loadme",loadme)
       $(this).on("nextStage",nextStage)
-      $(this).on("summary",summary)      
-      $(this).on("autoGuess",autoGuess)   
+      $(this).on("summary",summary)
+      $(this).on("timeout",timeout)      
+      #$(this).on("autoGuess",autoGuess)   
       #START THE GAME IMMEDIATELY
-      @gameMode = true
-      $(this).triggerHandler(type:"startGame")
+      #@gameMode = true
+      #$(this).triggerHandler(type:"startGame")
      
     
    init()

@@ -17,6 +17,8 @@
       this.gameTextWebSymbols = document.getElementsByClassName("websymbols")[0];
       this.miscInfoDiv = document.getElementById("miscinfo");
       this.miscInfo = document.getElementById("miscinfotext");
+      this.timer = document.getElementById("timer");
+      this.timeleft = document.getElementById("timeleft");
       this.compositeG = document.getElementById("svgCanvas");
       this.circleCanvas = document.getElementById("circleCanvas");
       this.majorCircle = document.getElementById("majorCircle");
@@ -34,6 +36,8 @@
       this.loaderSymbols = ["0", "1", "2", "3", "4", "5", "6", "7"];
       this.loaderRate = 100;
       this.loadmetimer = null;
+      this.timeout_trigger = null;
+      this.timelimit = 20;
       /*
       */
 
@@ -54,7 +58,7 @@
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
-      this.serverURL = "http://192.168.1.161:8070/";
+      this.serverURL = "http://129.132.183.7:8070/";
       this.registered = false;
       this.customIdentity = Math.random().toString(36).substring(5);
       this.flip = 0;
@@ -66,7 +70,7 @@
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, autoGuess, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, initSummaryTable, loadme, next, nextStage, nextStageEvent, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, setEstimateAngle, startGame, stopGame, summary, summaryEvent, updateGameTextDiv, updateRankInfo,
+      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, initSummaryTable, loadme, next, nextStage, nextStageEvent, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, setEstimateAngle, startGame, stopGame, summary, summaryEvent, timeout, updateGameTextDiv, updateRankInfo,
         _this = this;
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
@@ -96,7 +100,7 @@
               _this.gameMode = false;
               _this.registered = false;
             } else if (response.responseText.indexOf("roundfinished") !== -1) {
-              alert("Sorry, you have been disconnected from the game due to network problems.");
+              alert("Sorry, you have been disconnected from the game due to timeout.");
               _this.registered = false;
               _this.gameMode = false;
             } else if (response.responseText.indexOf("finished") !== -1) {
@@ -108,7 +112,7 @@
               _this.maxGameStages = parseInt(response.responseText.split(" ")[2]);
               _this.registered = true;
             } else if (response.responseText.indexOf("insane") !== -1) {
-              alert("Sorry, you have been disconnected from the game due to network problems.");
+              alert("Sorry, you have been disconnected from the game due to timeout.");
               _this.registered = false;
               _this.gameMode = false;
             }
@@ -151,53 +155,39 @@
             setEstimateAngle(_this.initialEstimate);
           }
           console.log("My rank at the beginning of round " + (_this.nextLevel + 1) + " and stage " + (_this.nextStage + 1) + " is: " + _this.currentRank);
-          updateRankInfo();
           updateGameTextDiv(true);
-          if (Math.random() < 0.1) {
-            $(_this).triggerHandler({
-              type: "stopGame"
-            });
-            return true;
-          }
-          $(_this).triggerHandler({
-            type: "autoGuess"
-          });
+          updateRankInfo();
           return true;
         }
         return setTimeout((function() {
           return queryRound(data);
         }), 3000);
       };
-      autoGuess = function() {
-        if (_this.rankText.textContent !== "" && _this.gameMode) {
-          _this.rankText.textContent = "Your current rank: ";
-        }
-        if (_this.gameMode) {
-          if (_this.nextStage < _this.maxGameStages) {
-            if (_this.nextLevel < _this.maxGameRounds) {
-              _this.miscInfo.textContent = "";
-              resetZoom(false);
-              send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.nextStage + " " + Math.random() * 180 / Math.PI);
-              if (Math.random() < 0.1) {
-                $(_this).triggerHandler({
-                  type: "stopGame"
-                });
-                return true;
-              }
-              _this.nextLevel++;
-              updateGameTextDiv(false);
-              removeListeners();
-              return $(_this).triggerHandler({
-                type: "queryServer"
-              });
-            }
-          } else {
-            return $(_this).triggerHandler({
-              type: "stopGame"
-            });
-          }
-        }
-      };
+      /*
+         autoGuess = () =>
+            if @rankText.textContent!= "" and @gameMode
+               @rankText.textContent="Your current rank: " 
+            
+            #should we send the click to the server?
+            if @gameMode
+              if @nextStage < @maxGameStages
+                  if @nextLevel < @maxGameRounds
+                    @miscInfo.textContent = ""
+                    resetZoom(false)             
+                    send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + Math.random()*180/Math.PI)
+                    #decide to disconnect randomly before sending rank request, but after sending estimate
+                    if Math.random() < 0.1
+                      $(this).triggerHandler(type:"stopGame")
+                      return true        
+                    @nextLevel++     
+                    #show wait for all players
+                    updateGameTextDiv(false)
+                    removeListeners()
+                    $(this).triggerHandler(type:"queryServer")
+              else #stop game
+                    $(this).triggerHandler(type:"stopGame")
+      */
+
       loadme = function() {
         _this.gameTextWebSymbols.innerHTML = _this.loaderSymbols[_this.loaderIndex];
         if (_this.loaderIndex < _this.loaderSymbols.length - 1) {
@@ -256,13 +246,34 @@
       };
       updateRankInfo = function() {
         if (_this.nextLevel === 0) {
-          return _this.rankText.textContent = _this.username + ", your initial rank is: " + _this.currentRank;
+          _this.rankText.textContent = _this.username + ", your initial rank is: " + _this.currentRank;
+          _this.timeleft.textContent = "Time Left: ";
+          return $(_this).triggerHandler({
+            type: "timeout"
+          });
         } else if (_this.nextLevel === _this.maxGameRounds) {
           _this.rankText.textContent = _this.username + ", your final rank for stage " + (_this.nextStage + 1) + " is: " + _this.currentRank;
+          _this.timeleft.textContent = "";
+          _this.timer.textContent = "";
           return _this.finalRanks[_this.nextStage] = parseInt(_this.currentRank.split("(")[0]);
         } else {
-          return _this.rankText.textContent = _this.username + ", your rank at the end of round " + _this.nextLevel + " is: " + _this.currentRank;
+          _this.rankText.textContent = _this.username + ", your rank at the end of round " + _this.nextLevel + " is: " + _this.currentRank;
+          _this.timeleft.textContent = "Time Left: ";
+          return $(_this).triggerHandler({
+            type: "timeout"
+          });
         }
+      };
+      timeout = function() {
+        if (_this.timelimit === -1) {
+          alert("Timeout. You have been disconnected from the game.");
+          _this.gameMode = false;
+          _this.registered = false;
+          return;
+        }
+        _this.timer.textContent = _this.timelimit;
+        _this.timelimit = _this.timelimit - 1;
+        return _this.timeout_trigger = setTimeout(timeout, 1000);
       };
       nextStage = function() {
         var nbutton, nbuttonText;
@@ -279,21 +290,6 @@
         _this.gameText.parentNode.setAttribute("style", "height:20%;width:100%;float:left;");
         _this.miscInfoDiv.setAttribute("style", "height:80%;width:100%;float:left;");
         return nbutton.onclick = nextStageEvent;
-        /*
-             @gameText.parentNode.setAttribute("style","height:10%;width:100%;float:left;") 
-             @miscInfoDiv.setAttribute("style","height:90%;width:100%;float:left;")     
-             nbutton.parentNode.removeChild(nbutton)
-             @nextStage++     
-             @nextLevel = 0
-             @currentRank = ""
-             updateGameTextDiv(false)
-             #notify the server that we are ready for the next stage
-             send(@serverURL,"ready "+@nextStage)
-             if @rankText.textContent!= "" and @gameMode
-                @rankText.textContent="Waiting for other players."     
-             $(this).triggerHandler(type:"queryServer")
-        */
-
       };
       nextStageEvent = function() {
         var nbutton;
@@ -305,19 +301,7 @@
         _this.nextLevel = 0;
         _this.currentRank = "";
         updateGameTextDiv(false);
-        if (Math.random() < 0.1) {
-          $(_this).triggerHandler({
-            type: "stopGame"
-          });
-          return true;
-        }
         send(_this.serverURL, "ready " + _this.nextStage);
-        if (Math.random() < 0.1) {
-          $(_this).triggerHandler({
-            type: "stopGame"
-          });
-          return true;
-        }
         if (_this.rankText.textContent !== "" && _this.gameMode) {
           _this.rankText.textContent = "Waiting for other players.";
         }
@@ -487,6 +471,10 @@
       };
       ccMouseClick = function(e) {
         var animatedElement, coord, radius;
+        clearTimeout(_this.timeout_trigger);
+        _this.timeleft.textContent = "";
+        _this.timer.textContent = "";
+        _this.timelimit = 20;
         e = e || window.event;
         coord = getCursorPosition(e);
         _this.previous_angle = Math.atan2(coord.y, coord.x);
@@ -633,7 +621,7 @@
         }
       };
       initInstructions = function() {
-        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your guess is to the hidden point, compared to others.\n\r" + "The game consists of 5 identical stages. Each stage, in turn, consists of 10 rounds." + "During each round, you make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices. A stage finishes after round 10 is over.\n\r" + "At the beginning of round 1 of each stage, you will be assigned a random guess. It is used to calculate your starting rank for this stage." + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Similarly, if you are farthest from the point, you rank last.\n\r" + "Your payoff is based on your final rank at the end each stage. Rank 1 is worth 10 CHF, Rank 2 - 6 CHF, and Rank 3 - 4 CHF. For example, if you consistently" + " finish first in all 5 stages, your reward will be 10*5= 50 CHF.\n\r" + "To continue, enter a username in the box below and click \"Next\" for a quick practice.";
+        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your guess is to the hidden point, compared to others.\n\r" + "The game consists of 5 identical stages. Each stage, in turn, consists of 10 rounds." + "During each round, you make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices. A stage finishes after round 10 is over.\n\r" + "You have 20 seconds to submit a guess. Failure to do so will disconnect you from the game." + "\n\r" + "Note that the position of the hidden point changes in every stage!\n\r" + "At the beginning of round 1 of each stage, you will be assigned a random guess. It is used to calculate your starting rank for this stage." + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Similarly, if you are farthest from the point, you rank last.\n\r" + "Your payoff is based on your final rank at the end each stage. Rank 1 is worth 10 CHF, Rank 2 - 6 CHF, and Rank 3 - 4 CHF. For example, if you consistently" + " finish first in all 5 stages, your reward will be 10*5= 50 CHF.\n\r" + "To continue, enter a username in the box below and click \"Next\" for a quick practice.";
         _this.instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ...";
         _this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
         _this.instructionVector[3] = "Finally, your rank at the end of the previous round is displayed above the circle. " + "In this example, the number in the brackets shows the current number " + "of connected players. This number, together with your rank, will be updated at the end of each round, after all players " + " have submitted their guesses. " + "At the beggining of each new round, you will be shown your rank from the previous one.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle or " + "you can go back to read the instructions again. If anything is left unclear, please ask the administrator in chat.\n\r" + "Once you are ready, hit \"Start\" to begin the game. " + "You will be assigned a random initial estimate (indicated by the red circle) on which your initial rank will be based.";
@@ -687,11 +675,7 @@
         $(_this).on("loadme", loadme);
         $(_this).on("nextStage", nextStage);
         $(_this).on("summary", summary);
-        $(_this).on("autoGuess", autoGuess);
-        _this.gameMode = true;
-        return $(_this).triggerHandler({
-          type: "startGame"
-        });
+        return $(_this).on("timeout", timeout);
       };
       return init();
     };
