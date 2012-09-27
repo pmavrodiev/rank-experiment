@@ -13,5 +13,8 @@
 	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1-javadoc.jar"/>
 	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/commons-collections-3.2.1/commons-collections-3.2.1-sources.jar"/>
 	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/sqlite-jdbc-3.7.2.jar"/>
+	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/itext-5.3.3/itextpdf-5.3.3.jar"/>
+	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/itext-5.3.3/itextpdf-5.3.3-javadoc.jar"/>
+	<classpathentry kind="lib" path="/home/pmavrodiev/Programs/rank-experiment/master/lib/itext-5.3.3/itextpdf-5.3.3-sources.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>

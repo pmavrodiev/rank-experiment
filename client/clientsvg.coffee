@@ -35,7 +35,8 @@ class window.rank_experiment
     @loaderRate=100
     @loadmetimer=null
     @timeout_trigger = null
-    @timelimit = 20 #in seconds
+    @GLOBAL_TIME_LIMIT = 20
+    @timelimit = @GLOBAL_TIME_LIMIT #in seconds
     ### ###
     @maxGameRounds = 0 #obtained from the server upon announcement
     @maxGameStages = 0 #obtained from the server upon announcement
@@ -47,7 +48,8 @@ class window.rank_experiment
     @currentRank = ""       
     @tbody  = document.createElement("tbody")
     #payoffs
-    @payoffs_per_stage = [10,6,4] #10CHF for 1st place and so on.
+    #@payoffs_per_stage = [10,6,4] #10CHF for 1st place and so on.
+    @payoffs_per_stage = [17,13,8,6,6,6,5,5,5,3,3,3,3,2,2,2,2,1,1,1]
     @finalRanks = []
     @zoom_scale = 0.1
     @zoom_level = 0 #the nestedness of the zoom
@@ -59,7 +61,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://129.132.183.7:8070/"
+    @serverURL = "http://127.0.0.1:8070/"
     @registered = false
     @customIdentity = Math.random().toString(36).substring(5)
     
@@ -68,10 +70,16 @@ class window.rank_experiment
     if (@isFirefox)
       window.load = @windowListen()
     else
-      window.addEventListener('onload',@windowListen(),false)     
-    
-    
+      window.addEventListener('onload',@windowListen(),false)   
+
   windowListen: () ->   
+  
+   #disable right-click (works in Chome, not tested for other browsers)
+   window.oncontextmenu = (event) =>
+    event.preventDefault()
+    event.stopPropagation()
+    return false
+
   
    getCursorPosition = (e) => 
       pt = @circleCanvas.createSVGPoint()
@@ -162,7 +170,7 @@ class window.rank_experiment
       
       setTimeout((-> queryRound(data)),3000)
    
-   ###
+   
    autoGuess = () =>
       if @rankText.textContent!= "" and @gameMode
          @rankText.textContent="Your current rank: " 
@@ -172,12 +180,12 @@ class window.rank_experiment
         if @nextStage < @maxGameStages
             if @nextLevel < @maxGameRounds
               @miscInfo.textContent = ""
-              resetZoom(false)             
-              send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + Math.random()*180/Math.PI)
-              #decide to disconnect randomly before sending rank request, but after sending estimate
-              if Math.random() < 0.1
-                $(this).triggerHandler(type:"stopGame")
-                return true        
+              resetZoom(false)
+              clearTimeout(@timeout_trigger)
+              random_angle = Math.random()*360 - 180
+              #star at the end of the msg indicates a random guess
+              send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + random_angle+ " " + "*")
+              setEstimateAngle(random_angle*Math.PI/180)
               @nextLevel++     
               #show wait for all players
               updateGameTextDiv(false)
@@ -185,7 +193,7 @@ class window.rank_experiment
               $(this).triggerHandler(type:"queryServer")
         else #stop game
               $(this).triggerHandler(type:"stopGame")
-   ###        
+           
   
    loadme = () =>
       @gameTextWebSymbols.innerHTML = @loaderSymbols[@loaderIndex]      
@@ -235,7 +243,7 @@ class window.rank_experiment
    updateRankInfo = () =>
       if @nextLevel == 0
         @rankText.textContent = @username+", your initial rank is: "+@currentRank
-        @timeleft.textContent = "Time Left: "
+        @timeleft.textContent = "Time: "
         $(this).triggerHandler(type:"timeout")        
       else if @nextLevel == @maxGameRounds
         @rankText.textContent = @username+", your final rank for stage " + (@nextStage+1) + " is: "+@currentRank
@@ -244,20 +252,29 @@ class window.rank_experiment
         @finalRanks[@nextStage] = parseInt(@currentRank.split("(")[0]) #save the final rank for this stage        
       else
         @rankText.textContent = @username+", your rank at the end of round " + @nextLevel + " is: "+@currentRank
-        @timeleft.textContent = "Time Left: "
+        @timeleft.textContent = "Time: "
         $(this).triggerHandler(type:"timeout")        
 
    
    timeout = () =>
+     if @timelimit == 9
+        #change color
+        @timer.style.color = "red" 
+        @timeleft.style.color = "red"
+        @timeleft.textContent = "HURRY! Time: "
      if @timelimit == -1
-        alert("Timeout. You have been disconnected from the game.")
-        @gameMode = false
-        @registered = false
-        return        
-             
-     @timer.textContent = @timelimit
-     @timelimit=@timelimit-1
-     @timeout_trigger = setTimeout(timeout,1000)   
+        @timer.style.color = "black"
+        @timeleft.textContent = "Time: "
+        @timeleft.style.color = "black"
+        #submit a random guess
+        autoGuess()
+        @timeleft.textContent = ""
+        @timer.textContent = ""
+        @timelimit = @GLOBAL_TIME_LIMIT      
+     else                
+        @timer.textContent = @timelimit
+        @timelimit=@timelimit-1
+        @timeout_trigger = setTimeout(timeout,1000)   
    
    nextStage = () =>
      removeListeners()     
@@ -334,7 +351,7 @@ class window.rank_experiment
         cell1.appendChild(document.createTextNode(@finalRanks[i-1]))
         cell2 = document.createElement("td")
         payoff=""        
-        if @finalRanks[i-1] < 4
+        if @finalRanks[i-1] < 21
           payoff = @payoffs_per_stage[@finalRanks[i-1]-1] + " CHF"
           total = total + @payoffs_per_stage[@finalRanks[i-1]-1]
         else 
@@ -360,7 +377,7 @@ class window.rank_experiment
      @gameTextDiv.parentNode.removeChild(@gameTextDiv)
      @circleCanvas.parentNode.removeChild(@circleCanvas)
      @circleCanvasDiv.appendChild(table)    
-     @rankText.textContent = "Thank you "+@username+" for playing. You can close the page now."
+     @rankText.textContent = "Thank you "+@username+" for playing. A summary of your performance is shown below."
    
    ccMouseWheel = (event) =>
    
@@ -484,7 +501,7 @@ class window.rank_experiment
       clearTimeout(@timeout_trigger)
       @timeleft.textContent = ""
       @timer.textContent = ""
-      @timelimit = 20      
+      @timelimit = @GLOBAL_TIME_LIMIT      
       e = e || window.event
       coord = getCursorPosition(e)    
       @previous_angle = Math.atan2(coord.y,coord.x)

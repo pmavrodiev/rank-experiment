@@ -8,10 +8,10 @@ public class ClientLog {
 		private String round_begin;
 		private String estimate;
 		private String round_end;
-		private double rank; //the rank in this round
-
+		private int rank; //the rank in this round
+		boolean random_estimate; //is this estimate randomly generated, i.e. due to timeout?
 		public gameRound() {
-			round_begin=null;estimate=null;round_end=null; setRank(-1.0);
+			round_begin=null;estimate=null;round_end=null; random_estimate = false;setRank(-1);
 		}
 
 		public void setRound_begin(String round_begin) {this.round_begin = round_begin;	}		
@@ -20,13 +20,16 @@ public class ClientLog {
 		public String getEstimate() {return estimate;}		
 		public void setRound_end(String round_end) {this.round_end = round_end;	}
 		public String getRound_end() {return round_end;}
-		public double getRank() {return rank;}
-		public void setRank(double rank) {this.rank = rank;}
+		public int getRank() {return rank;}
+		public void setRank(int rank) {this.rank = rank;}
 		public double getOffsetEstimateAsDouble() {
 			return Double.parseDouble(estimate);
 		}
 		public double getInternalEstimateAsDouble() {
-			return Double.parseDouble(estimate) - personalOffset;
+			double difference = Double.parseDouble(estimate) - personalOffset; 
+			if (difference > 180) difference -= 360;
+			else if (difference < -180) difference += 360;
+			return difference;
 		}
 
 	}	
@@ -78,9 +81,10 @@ public class ClientLog {
 		gameRounds.set(index, newRound);
 		currentRound = index;
 	}
-	public void updateRound(String round_end, Double estimate, int index) {
+	public void updateRound(String round_end, Double estimate,boolean israndom ,int index) {
 		gameRounds.get(index).estimate = estimate.toString();
 		gameRounds.get(index).round_end = round_end;
+		gameRounds.get(index).random_estimate = israndom;
 	}
 
 	public gameRound getRound(int index) {

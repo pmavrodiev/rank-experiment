@@ -37,7 +37,8 @@
       this.loaderRate = 100;
       this.loadmetimer = null;
       this.timeout_trigger = null;
-      this.timelimit = 20;
+      this.GLOBAL_TIME_LIMIT = 20;
+      this.timelimit = this.GLOBAL_TIME_LIMIT;
       /*
       */
 
@@ -50,7 +51,7 @@
       this.nextStage = 0;
       this.currentRank = "";
       this.tbody = document.createElement("tbody");
-      this.payoffs_per_stage = [10, 6, 4];
+      this.payoffs_per_stage = [17, 13, 8, 6, 6, 6, 5, 5, 5, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1];
       this.finalRanks = [];
       this.zoom_scale = 0.1;
       this.zoom_level = 0;
@@ -58,7 +59,7 @@
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
-      this.serverURL = "http://129.132.183.7:8070/";
+      this.serverURL = "http://127.0.0.1:8070/";
       this.registered = false;
       this.customIdentity = Math.random().toString(36).substring(5);
       this.flip = 0;
@@ -70,8 +71,13 @@
     }
 
     rank_experiment.prototype.windowListen = function() {
-      var addListeners, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, initSummaryTable, loadme, next, nextStage, nextStageEvent, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, setEstimateAngle, startGame, stopGame, summary, summaryEvent, timeout, updateGameTextDiv, updateRankInfo,
+      var addListeners, autoGuess, ccMouseClick, ccMouseMove, ccMouseWheel, getCursorPosition, init, initInstructions, initSummaryTable, loadme, next, nextStage, nextStageEvent, prev, queryRound, removeListeners, resetZoom, restartGuessingTask, send, setEstimateAngle, startGame, stopGame, summary, summaryEvent, timeout, updateGameTextDiv, updateRankInfo,
         _this = this;
+      window.oncontextmenu = function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      };
       getCursorPosition = function(e) {
         var pt, pt2, transformation_matrix;
         pt = _this.circleCanvas.createSVGPoint();
@@ -163,31 +169,34 @@
           return queryRound(data);
         }), 3000);
       };
-      /*
-         autoGuess = () =>
-            if @rankText.textContent!= "" and @gameMode
-               @rankText.textContent="Your current rank: " 
-            
-            #should we send the click to the server?
-            if @gameMode
-              if @nextStage < @maxGameStages
-                  if @nextLevel < @maxGameRounds
-                    @miscInfo.textContent = ""
-                    resetZoom(false)             
-                    send(@serverURL,"estimate "+@nextLevel + " " + @nextStage + " " + Math.random()*180/Math.PI)
-                    #decide to disconnect randomly before sending rank request, but after sending estimate
-                    if Math.random() < 0.1
-                      $(this).triggerHandler(type:"stopGame")
-                      return true        
-                    @nextLevel++     
-                    #show wait for all players
-                    updateGameTextDiv(false)
-                    removeListeners()
-                    $(this).triggerHandler(type:"queryServer")
-              else #stop game
-                    $(this).triggerHandler(type:"stopGame")
-      */
-
+      autoGuess = function() {
+        var random_angle;
+        if (_this.rankText.textContent !== "" && _this.gameMode) {
+          _this.rankText.textContent = "Your current rank: ";
+        }
+        if (_this.gameMode) {
+          if (_this.nextStage < _this.maxGameStages) {
+            if (_this.nextLevel < _this.maxGameRounds) {
+              _this.miscInfo.textContent = "";
+              resetZoom(false);
+              clearTimeout(_this.timeout_trigger);
+              random_angle = Math.random() * 360 - 180;
+              send(_this.serverURL, "estimate " + _this.nextLevel + " " + _this.nextStage + " " + random_angle + " " + "*");
+              setEstimateAngle(random_angle * Math.PI / 180);
+              _this.nextLevel++;
+              updateGameTextDiv(false);
+              removeListeners();
+              return $(_this).triggerHandler({
+                type: "queryServer"
+              });
+            }
+          } else {
+            return $(_this).triggerHandler({
+              type: "stopGame"
+            });
+          }
+        }
+      };
       loadme = function() {
         _this.gameTextWebSymbols.innerHTML = _this.loaderSymbols[_this.loaderIndex];
         if (_this.loaderIndex < _this.loaderSymbols.length - 1) {
@@ -247,7 +256,7 @@
       updateRankInfo = function() {
         if (_this.nextLevel === 0) {
           _this.rankText.textContent = _this.username + ", your initial rank is: " + _this.currentRank;
-          _this.timeleft.textContent = "Time Left: ";
+          _this.timeleft.textContent = "Time: ";
           return $(_this).triggerHandler({
             type: "timeout"
           });
@@ -258,22 +267,31 @@
           return _this.finalRanks[_this.nextStage] = parseInt(_this.currentRank.split("(")[0]);
         } else {
           _this.rankText.textContent = _this.username + ", your rank at the end of round " + _this.nextLevel + " is: " + _this.currentRank;
-          _this.timeleft.textContent = "Time Left: ";
+          _this.timeleft.textContent = "Time: ";
           return $(_this).triggerHandler({
             type: "timeout"
           });
         }
       };
       timeout = function() {
-        if (_this.timelimit === -1) {
-          alert("Timeout. You have been disconnected from the game.");
-          _this.gameMode = false;
-          _this.registered = false;
-          return;
+        if (_this.timelimit === 9) {
+          _this.timer.style.color = "red";
+          _this.timeleft.style.color = "red";
+          _this.timeleft.textContent = "HURRY! Time: ";
         }
-        _this.timer.textContent = _this.timelimit;
-        _this.timelimit = _this.timelimit - 1;
-        return _this.timeout_trigger = setTimeout(timeout, 1000);
+        if (_this.timelimit === -1) {
+          _this.timer.style.color = "black";
+          _this.timeleft.textContent = "Time: ";
+          _this.timeleft.style.color = "black";
+          autoGuess();
+          _this.timeleft.textContent = "";
+          _this.timer.textContent = "";
+          return _this.timelimit = _this.GLOBAL_TIME_LIMIT;
+        } else {
+          _this.timer.textContent = _this.timelimit;
+          _this.timelimit = _this.timelimit - 1;
+          return _this.timeout_trigger = setTimeout(timeout, 1000);
+        }
       };
       nextStage = function() {
         var nbutton, nbuttonText;
@@ -341,7 +359,7 @@
           cell1.appendChild(document.createTextNode(_this.finalRanks[i - 1]));
           cell2 = document.createElement("td");
           payoff = "";
-          if (_this.finalRanks[i - 1] < 4) {
+          if (_this.finalRanks[i - 1] < 21) {
             payoff = _this.payoffs_per_stage[_this.finalRanks[i - 1] - 1] + " CHF";
             total = total + _this.payoffs_per_stage[_this.finalRanks[i - 1] - 1];
           } else {
@@ -369,7 +387,7 @@
         _this.gameTextDiv.parentNode.removeChild(_this.gameTextDiv);
         _this.circleCanvas.parentNode.removeChild(_this.circleCanvas);
         _this.circleCanvasDiv.appendChild(table);
-        return _this.rankText.textContent = "Thank you " + _this.username + " for playing. You can close the page now.";
+        return _this.rankText.textContent = "Thank you " + _this.username + " for playing. A summary of your performance is shown below.";
       };
       ccMouseWheel = function(event) {
         var circleParent, circleScaled, deltaX, deltaY, e, s, smatrix, tm, tmparent, tmscaled, tmscaledtranslated, translation_x, translation_y, zoomLevel;
@@ -474,7 +492,7 @@
         clearTimeout(_this.timeout_trigger);
         _this.timeleft.textContent = "";
         _this.timer.textContent = "";
-        _this.timelimit = 20;
+        _this.timelimit = _this.GLOBAL_TIME_LIMIT;
         e = e || window.event;
         coord = getCursorPosition(e);
         _this.previous_angle = Math.atan2(coord.y, coord.x);

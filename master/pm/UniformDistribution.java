@@ -14,12 +14,16 @@ public class UniformDistribution {
 		return (r.nextDouble()*2*Math.PI - Math.PI)*180/Math.PI;		
 	}
 
-/*
+
 	public static void main(String[] args) {
 		int N = 100;
 		for (int i=0; i<N; i++)
 			System.out.println(pi_uniform());
+		
+		String IP = "127.0.0.1";
+		String[] tokenize_ip = IP.split("\\.");
+		System.out.println(tokenize_ip[0]);
 	}
-*/
+
 	
 }

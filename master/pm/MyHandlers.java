@@ -173,6 +173,9 @@ public class MyHandlers {
 							Integer estimateForRound = new Integer(tokenize_payload[1]);
 							Integer estimateForStage = new Integer(tokenize_payload[2]);
 							Double clientEstimate = new Double(tokenize_payload[3]);
+							boolean israndom = false;
+							if (tokenize_payload.length == 5)
+								israndom = true;
 							String clientTime = dateFormat.format(new Date());
 							/* sanity check */
 							if (!GUI.gameRoundsStates[estimateForRound] || !GUI.gameStagesStates[estimateForStage]) {
@@ -183,7 +186,7 @@ public class MyHandlers {
 								response.getWriter().print("ok");
 								/*update the round info for this client*/
 								ClientLog oldClient = GUI.clients.get(hex);
-								oldClient.updateRound(clientTime, clientEstimate, estimateForRound);
+								oldClient.updateRound(clientTime, clientEstimate,israndom,estimateForRound);
 								GUI.updateGUITable(oldClient,GUI.ROUND_END);
 							}
 
