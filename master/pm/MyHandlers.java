@@ -6,6 +6,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Random;
 
 
 import javax.servlet.ServletException;
@@ -101,9 +102,20 @@ public class MyHandlers {
 
 							else {
 								/*add the client to the known clients*/
-								log.println("Client announced from "+ip+":"+hex+"\n");							
-								ClientLog newClient = new ClientLog(ip,hex,dateFormat.format(new Date()),null,GUI.clients.size(),UniformDistribution.pi_uniform());
-								synchronized (this) {									
+								log.println("Client announced from "+ip+":"+hex+"\n");															  
+								try{
+									  if (GUI.delme++ == 0) {
+										  Thread.currentThread();
+										  //do what you want to do before sleeping
+										  Thread.sleep(4000);//sleep for 1000 ms
+										  //do what you want to do after sleeptig
+									  }
+									}
+									catch(InterruptedException ie){
+									//If this thread was intrrupted by nother thread 
+								}
+								synchronized (this) {
+									ClientLog newClient = new ClientLog(ip,hex,dateFormat.format(new Date()),null,GUI.clients.size(),UniformDistribution.pi_uniform());
 									GUI.clients.put(hex, newClient);
 									GUI.updateGUITable(newClient,GUI.ANNOUNCE);  //new client									
 								}
@@ -219,7 +231,9 @@ public class MyHandlers {
 						}
 					}
 					else if (payload.indexOf("doneinstructions") != -1) {
-						GUI.activeClients++;
+						synchronized (this) {	
+							GUI.activeClients++;
+						}
 						String clientTime = dateFormat.format(new Date());
 						ClientLog client = GUI.clients.get(hex);
 						client.reg_end = clientTime;			

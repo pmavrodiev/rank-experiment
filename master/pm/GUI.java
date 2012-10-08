@@ -1,5 +1,6 @@
 package pm;
 
+import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 
@@ -28,6 +29,7 @@ import java.util.HashMap;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -75,14 +77,16 @@ public class GUI extends JFrame {
 	 * Stage 2: low CE, high Div.
 	 * Stage 3: medium CE, low Div.
 	 * Stage 4: high CE, low Div.
-	 * Stage 5: high CE, high Div.*/
-	public static double[] mu = {Math.PI/18,Math.PI/18,Math.PI/9,Math.PI/3,Math.PI/3}; //in degrees: [10,10,20,60,60]
-	public static double [] init_diversity = {0.0025,0.09,0.0025,0.0025,0.09};
-	//public static double mu = 90.0 * Math.PI / 180; // in radians
-	// public static final double init_colllective_err = Math.pow(truth-mu,2.0);
-	//public static double init_diversity = 0.0025;
-	public static final int gameRounds = 2;
-	public static final int gameStages = 2;
+	 * Stage 5: high CE, high Div.
+	 * Stage 6:
+	 * Stage 7:
+	 * Stage 8: */
+	public static double[] mu = {Math.PI/9,Math.PI/9,Math.PI/4.5,Math.PI/4.5,Math.PI/9,Math.PI/9,Math.PI/4.5,Math.PI/4.5}; //in degrees: [20,20,40,40,20,20,40,40]
+	public static double [] init_diversity = {0.0025,0.0025,0.0025,0.0025,1,2.25,1,2.25}; //variance
+	public static final int gameRounds = 1;
+	public static final int gameStages = 1;
+	public static int completedRounds = 0;
+	public static int completedStages = 0;
 	public static int next_stage = 0;
 	public static int next_round = 0;
 	/* flags for the log table */
@@ -108,6 +112,8 @@ public class GUI extends JFrame {
 	public static LinkedHashMap<String, ClientLog> clients;
 	/* active clients */
 	public static int activeClients;
+	/* number of connected clients in the beginning*/
+	public static int totalPlayers;
 	/* swing stuff */
 	private static JPanel jPanel0;
 	private static JButton startstop;
@@ -132,11 +138,14 @@ public class GUI extends JFrame {
 	static PipedOutputStream poOut;
 	static PipedOutputStream poErr;
 
+	public static int delme = 0;	
+	
 	public GUI(final MyServer myServer) {
 		GUI.myServer = myServer;
 		/* game related stuff */
 		clients = new LinkedHashMap<String, ClientLog>();
 		activeClients = 0;
+		totalPlayers = 0;
 		gameRoundsStates = new boolean[gameRounds + 1]; // +1 for the final
 		// dummy round, i.e.
 		// similar to the .end()
@@ -163,8 +172,7 @@ public class GUI extends JFrame {
 			}
 		}, "Stop Jetty Hook"));
 		/* init logging */
-	}
-
+	}	
 	private void initComponents() {
 		setLayout(new GridBagLayout());
 		this.setSize(897, 447);
@@ -326,8 +334,10 @@ public class GUI extends JFrame {
 			calculatePayoffs.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e){
-				    Integer[] payoffs_per_stage = {17,13,8,6,6,6,5,5,5,3,3,3,3,2,2,2,2,1,1,1};
+				    Double[] payoffs_per_stage = {10.6,8.1,5.0,3.8,3.8,3.8,3.1,3.1,3.1,1.9,1.9,1.9,1.9,1.2,
+				    		1.2,1.2,1.2,0.6,0.6,0.6};
 					try {
+					//System.out.println(completedStages);
 					String filename = (new SimpleDateFormat("yyyy_dd_MM_HH_mm")).format(new Date()) + "-payoffs.pdf";
 					final Font boldFont = new Font(Font.FontFamily.TIMES_ROMAN, 18,Font.BOLD);
 					final Font smallBold = new Font(Font.FontFamily.TIMES_ROMAN, 12,Font.BOLD);
@@ -348,15 +358,18 @@ public class GUI extends JFrame {
 				    addEmptyLine(preface, 3);
 				    document.add(preface);					
 					/*generate the payoff table*/
-					PdfPTable table = new PdfPTable(gameStages+2);
+					PdfPTable table = new PdfPTable(completedStages+3);
 					PdfPCell c1 = new PdfPCell(new Phrase("PC"));
 				    c1.setHorizontalAlignment(Element.ALIGN_CENTER);
 				    table.addCell(c1);
-					for (int i=0; i<gameStages; i++) {
+					for (int i=0; i<completedStages; i++) {
 						c1 = new PdfPCell(new Phrase("Stage "+(i+1)));
 						c1.setHorizontalAlignment(Element.ALIGN_CENTER);
 					    table.addCell(c1);
 					}
+					c1 = new PdfPCell(new Phrase("Show up"));
+					c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+				    table.addCell(c1);
 					c1 = new PdfPCell(new Phrase("Total"));
 					c1.setHorizontalAlignment(Element.ALIGN_CENTER);
 				    table.addCell(c1);
@@ -368,15 +381,19 @@ public class GUI extends JFrame {
 				    	Integer PCnumber = new Integer(tokenize_ip[3]);
 				    	PCnumber -= 140; //subtract 140 from the IP to get the PC number
 				    	table.addCell(PCnumber.toString()); //the machine (PC) number
-				    	Integer total_payoff_i = 0;
-				    	for (int j=0; j<gameStages; j++) {
+				    	Double total_payoff_i = 0.0;
+				    	for (int j=0; j<completedStages; j++) {
 				    		DefaultTableModel m = (DefaultTableModel) getLogTable(j).getModel();
 				    		Integer final_rank = new Integer(m.getValueAt(i, m.getColumnCount()-1).toString());
-				    		Integer payoff = (final_rank <= 20) ? payoffs_per_stage[final_rank-1] : 0;
+				    		Double payoff = (final_rank <= 20) ? payoffs_per_stage[final_rank-1] : 0.0;
 				    		total_payoff_i += payoff;
 				    		table.addCell(payoff.toString());
 				    	}
-				    	table.addCell(total_payoff_i.toString());
+				    	table.addCell("10 CHF");
+				    	total_payoff_i += 10;
+				    	long total_payoff_rounded = Math.round(total_payoff_i);
+				    	String result = total_payoff_i + " ~ "+total_payoff_rounded + " CHF";
+				    	table.addCell(result);
 				    }				  
 					/* *********************** */
 				    document.add(table);
@@ -503,15 +520,26 @@ public class GUI extends JFrame {
 									currentEstimates.add(-1.0);
 							}							
 							updateGUITable(null, INIT_ESTIMATE);
-						} else { // not the very first round
+						} 
+						else { // not the very first round
+							Object[] options = {"Continue","Wait"};
+							int n = 0;
+							if (GUI.totalPlayers > 0)
+								n = JOptionPane.showOptionDialog((Component) getConsolePane(),"Wait for other players?","Are you sure?",
+																JOptionPane.YES_NO_OPTION,
+																JOptionPane.QUESTION_MESSAGE,
+																null,
+																options,
+																options[1]);
+							
+							
+							if (n == 1) return;
 							/*
-							 * populate currentEstimates with data from the last
+							 * 	populate currentEstimates with data from the last
 							 * round
 							 */
 							gameRoundsStates[next_round - 1] = false; // invalidate
-							// the
-							// previous
-							// round
+							// the previous round
 							Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
 							Iterator<Map.Entry<String, ClientLog>> itr = s.iterator();
 							int i = 0;
@@ -536,24 +564,22 @@ public class GUI extends JFrame {
 										GUI.activeClients--; // this guys is out
 										oldClient.inValidate();
 										currentEstimates.set(i, -1.0); // set
-										// some
-										// gatekeeping
-										// value
+										// some gatekeeping value
 									}
 								}
 								i++;
-							}
-						}
+							} //end while							
+						} //end else
 						computeRanks();
 						gameRoundsStates[next_round++] = true;
 						updateGUITable(null, RANK);
+						GUI.totalPlayers = GUI.activeClients;
 						if (next_round == gameRounds) {
 							((JButton) e.getSource()).setText("End Stage "+ next_stage);							
 						} else if (next_round == (gameRounds + 1)) {
-							((JButton) e.getSource()).setEnabled(false);							
-							prepareNextStage();
+							prepareNextStage();							
 						} else {
-							((JButton) e.getSource()).setText("Begin Round "+ (next_round + 1));
+							((JButton) e.getSource()).setText("Begin Round "+ (next_round + 1));							
 							if (next_round == (gameRounds - 1))
 								((JButton) e.getSource())
 								.setText("Begin Last Round "+ (next_round + 1));
@@ -568,6 +594,7 @@ public class GUI extends JFrame {
 	}
 
 	private static void prepareNextStage() {		
+		completedStages++;
 		/* sort out the buttons first */
 		if (next_stage < gameStages) {
 			nextStage.setEnabled(true);
@@ -728,6 +755,7 @@ public class GUI extends JFrame {
 			int rowIdx = newClient.id;
 			int colIdx = 5; // REG_END
 			model.setValueAt((Object) newClient.reg_end, rowIdx, colIdx);
+			GUI.totalPlayers = GUI.activeClients;
 		} else if (state == ROUND_BEGIN) {
 			int rowIdx = newClient.id;
 			int colIdx = 8 + 4 * newClient.currentRound;
@@ -749,6 +777,7 @@ public class GUI extends JFrame {
 			model.setValueAt((Object) newClient
 					.getRound(newClient.currentRound).getRound_end(), rowIdx,
 					colIdx2);
+			GUI.totalPlayers--;
 		} else if (state == RANK) {
 			int colIdx = (next_round - 1 == 0) ? 6 : 6 + 4 * (next_round - 1);
 			Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
@@ -787,7 +816,9 @@ public class GUI extends JFrame {
 			model.setValueAt(newClient.stagesEndTime.get(next_stage-1), rowIdx, colIdx);
 			//update also the final rank
 			colIdx = model.getColumnCount() - 1;
-			model.setValueAt(newClient.getRound(gameRounds).getRank(),rowIdx,colIdx);
+			model.setValueAt(newClient.getRound(gameRounds).getRank(),rowIdx,colIdx);			
+			GUI.totalPlayers--;
+
 		}
 	}
 

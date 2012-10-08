@@ -155,6 +155,33 @@ analyse_db("2012_28_08_11_47")
 analyse_db("2012_28_08_12_00")
 
 
+p_20 = function(alpha) {
+  return (1-(1-alpha/180)^20)
+}
+
+Exp_Time_Alpha = function(alpha) {
+  return (1/p_20(alpha)-1)
+}
+
+Total_Exp_Time = function(alpha_start,alpha_end) {
+  nsuccesses = 0
+  tmp=alpha_start
+  while (tmp > alpha_end) {tmp = tmp/2;nsuccesses=nsuccesses+1}
+  expected_total_time = 0
+  for (i in 1:nsuccesses) {
+    expected_total_time = expected_total_time + Exp_Time_Alpha(alpha_start)
+    alpha_start = alpha_start / 2
+  } 
+  return (paste(nsuccesses,":",expected_total_time,sep=""))
+}
+
+Total_Exp_Time(20,0.5)
+Total_Exp_Time(40,2)
+
+x=rnorm(100,20,1.5)
+hist(x)
+plot(seq(1,20),success_prob(seq(1,20),25/180),type="l")
+
 
 
 

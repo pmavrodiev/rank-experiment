@@ -31,6 +31,9 @@ public class ClientLog {
 			else if (difference < -180) difference += 360;
 			return difference;
 		}
+		public void print() {
+			
+		}
 
 	}	
 

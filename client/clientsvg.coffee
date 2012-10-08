@@ -35,7 +35,7 @@ class window.rank_experiment
     @loaderRate=100
     @loadmetimer=null
     @timeout_trigger = null
-    @GLOBAL_TIME_LIMIT = 20
+    @GLOBAL_TIME_LIMIT = 30
     @timelimit = @GLOBAL_TIME_LIMIT #in seconds
     ### ###
     @maxGameRounds = 0 #obtained from the server upon announcement
@@ -49,7 +49,7 @@ class window.rank_experiment
     @tbody  = document.createElement("tbody")
     #payoffs
     #@payoffs_per_stage = [10,6,4] #10CHF for 1st place and so on.
-    @payoffs_per_stage = [17,13,8,6,6,6,5,5,5,3,3,3,3,2,2,2,2,1,1,1]
+    @payoffs_per_stage = [10.6,8.1,5.0,3.8,3.8,3.8,3.1,3.1,3.1,1.9,1.9,1.9,1.9,1.2,1.2,1.2,1.2,0.6,0.6,0.6]
     @finalRanks = []
     @zoom_scale = 0.1
     @zoom_level = 0 #the nestedness of the zoom
@@ -61,7 +61,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://127.0.0.1:8070/"
+    @serverURL = "http://129.132.183.7:8070/"
     @registered = false
     @customIdentity = Math.random().toString(36).substring(5)
     
@@ -361,12 +361,23 @@ class window.rank_experiment
         row.appendChild(cell1)
         row.appendChild(cell2)
         @tbody.appendChild(row)
+     total = total + 10.0
+     showupfeerow = document.createElement("tr")   
+     cell0 = document.createElement("th")
+     cell0.appendChild(document.createTextNode("Show-up Fee"))
+     cell1 = document.createElement("td")
+     cell2 = document.createElement("td")
+     cell2.appendChild(document.createTextNode("10 CHF"))
+     showupfeerow.appendChild(cell0)   
+     showupfeerow.appendChild(cell1)
+     showupfeerow.appendChild(cell2)
+     @tbody.appendChild(showupfeerow)
      totalrow = document.createElement("tr") 
      cell0 = document.createElement("th")
      cell0.appendChild(document.createTextNode("Total"))
      cell1 = document.createElement("td")
      cell2 = document.createElement("td")
-     cell2.appendChild(document.createTextNode(total + " CHF"))
+     cell2.appendChild(document.createTextNode(total + " ~ " + Math.round(total)+ " CHF"))
      totalrow.appendChild(cell0)   
      totalrow.appendChild(cell1)
      totalrow.appendChild(cell2)
@@ -589,7 +600,7 @@ class window.rank_experiment
               @buttonPrevious.disabled=false
       
               if @instructionIndex == 3   
-                @rankText.textContent = "Your Rank: 1 (25)"             
+                @rankText.textContent = "Your Rank: 1 (20)"             
                 @buttonNextText.innerHTML = "Start"
                 @buttonNext.innerHTML = "<text class=\"nextbuttontext\">Start</text>."              
                 @buttonNext.disabled=false
@@ -640,6 +651,7 @@ class window.rank_experiment
         @buttonNext.disabled=true
       
    initInstructions = () =>
+       ###
       @instructionVector[0] = "Welcome to our guessing game."+ 
       "The purpose of the game is to find out the location of a hidden point " +
       "randomly positioned on the blue circle to the left."+
@@ -658,21 +670,23 @@ class window.rank_experiment
       "Your payoff is based on your final rank at the end each stage. Rank 1 is worth 10 CHF, Rank 2 - 6 CHF, and Rank 3 - 4 CHF. For example, if you consistently"+
       " finish first in all 5 stages, your reward will be 10*5= 50 CHF.\n\r"+
       "To continue, enter a username in the box below and click \"Next\" for a quick practice."
-      
+      ###
+      @instructionVector[0] = "Welcome to our guessing game.\n\rIn this short practice session, you will learn how to work with the circle. "+
+                              "To continue, enter a username in the box below and click \"Next\"."
       @instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ..."
       
       @instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel.\n\r" +                              
                               "Try zooming in and out a few times to get used to this functionality ... "
       
       @instructionVector[3] = "Finally, your rank at the end of the previous round is displayed above the circle. "+
-                              "In this example, the number in the brackets shows the current number "+
-                              "of connected players. This number, together with your rank, will be updated at the end of each round, after all players "+ 
+                              "In this example, the number in the brackets shows number "+
+                              "of players. Your rank, will be updated at the end of each round, after all players "+ 
                               " have submitted their guesses. "+
                               "At the beggining of each new round, you will be shown your rank from the previous one.\n\r"+ 
                               
                               "With this last bit of information, the practice session ends. You can continue "+
                               "playing with the circle or "+
-                              "you can go back to read the instructions again. If anything is left unclear, please ask the administrator in chat.\n\r"+
+                              "you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r"+
                               "Once you are ready, hit \"Start\" to begin the game. " +
                               "You will be assigned a random initial estimate (indicated by the red circle) on which your initial rank will be based."
                               

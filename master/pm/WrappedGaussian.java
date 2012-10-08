@@ -17,8 +17,10 @@ public class WrappedGaussian {
 
 	public static void main(String[] args) {
 		int N = 100;
-		for (int i=0; i<N; i++)
-			System.out.println(phi_wrapped(Math.PI/18,0.3));		
+		//for (int i=0; i<N; i++)
+			//System.out.println(phi_wrapped(Math.PI/18,0.3));
+		long ii=Math.round(5.5);
+		System.out.println(ii);
 		
 	}
 
