@@ -103,17 +103,6 @@ public class MyHandlers {
 							else {
 								/*add the client to the known clients*/
 								log.println("Client announced from "+ip+":"+hex+"\n");															  
-								try{
-									  if (GUI.delme++ == 0) {
-										  Thread.currentThread();
-										  //do what you want to do before sleeping
-										  Thread.sleep(4000);//sleep for 1000 ms
-										  //do what you want to do after sleeptig
-									  }
-									}
-									catch(InterruptedException ie){
-									//If this thread was intrrupted by nother thread 
-								}
 								synchronized (this) {
 									ClientLog newClient = new ClientLog(ip,hex,dateFormat.format(new Date()),null,GUI.clients.size(),UniformDistribution.pi_uniform());
 									GUI.clients.put(hex, newClient);
