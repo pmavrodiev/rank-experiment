@@ -6,8 +6,10 @@ import java.awt.GridBagLayout;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -272,6 +274,24 @@ public class GUI extends JFrame {
 					}
 					try {
 						Connection conn = DriverManager.getConnection("jdbc:sqlite:"+time+".db");
+						FileWriter fstream;
+						try {
+							fstream = new FileWriter(time+".txt");
+							BufferedWriter out = new BufferedWriter(fstream);
+							Set<Map.Entry<String, ClientLog>> s = clients.entrySet();
+							Iterator<Map.Entry<String, ClientLog>> itr = s.iterator();
+							
+							while (itr.hasNext()) {
+								Map.Entry<String, ClientLog> el = itr.next();
+								ClientLog klient = el.getValue();
+								klient.print(out);
+							}
+							out.close();
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						
 						Statement stat = conn.createStatement();
 						//stat.executeUpdate("drop table if exists people;");
 						/*build the tables*/

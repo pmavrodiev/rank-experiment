@@ -1,5 +1,7 @@
 package pm;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.Vector;
 
 public class ClientLog {
@@ -31,8 +33,13 @@ public class ClientLog {
 			else if (difference < -180) difference += 360;
 			return difference;
 		}
-		public void print() {
-			
+		public void print(BufferedWriter bw) {
+			try {
+				bw.write("["+round_begin+","+round_end+"],["+getEstimate()+","+getInternalEstimateAsDouble()+","+getRank()+","+random_estimate);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 	}	
@@ -45,11 +52,11 @@ public class ClientLog {
 	public Vector<gameRound> gameRounds = new Vector<gameRound>(GUI.gameRounds);
 	public Vector<String> stagesEndTime = new Vector<String>(GUI.gameStages); //the end times of each stage, i.e. when the client finished the given stage	
 	public int currentRound; //the current round where the client is
-	
+
 	public double personalOffset; //the agent's personal offset	
 	public boolean validClient; //checks to see if the client has disconnected at some point
 	public String username;
-	
+
 	public ClientLog(String client_ip,String hex ,String reg_begin,String reg_end,int id, double personal_offset) {
 		this.username = null;
 		this.validClient = false;
@@ -60,9 +67,23 @@ public class ClientLog {
 		this.reg_begin = reg_begin;
 		this.reg_end = reg_end;
 		this.currentRound = 0;
-		
+
 		for (int i=0; i<(GUI.gameRounds+1); i++)
 			gameRounds.add(new gameRound());
+	}
+	public void print(BufferedWriter bw) {
+		try {
+			bw.write(id+","+username+","+client_ip+","+hex+","+reg_begin+","+reg_end+System.getProperty("line.separator"));
+			for (int i=0; i<(gameRounds.size()-1); i++) {
+				bw.write("Round "+i+": ");
+				gameRounds.get(i).print(bw);
+				bw.write(System.getProperty("line.separator"));
+			}
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	/*
 	public ClientLog(String client_ip) {
@@ -77,7 +98,7 @@ public class ClientLog {
 		for (int i=0; i<GUI.gameRounds; i++)
 			gameRounds.add(new gameRound());
 	}
-	*/	
+	 */	
 	public void initNewRound(String round_begin, int index) {
 		gameRound newRound = new gameRound();
 		newRound.round_begin = round_begin;		
@@ -101,7 +122,7 @@ public class ClientLog {
 		else 
 			return false;	
 	}
-	
+
 	public void inValidate() {
 		this.validClient = false;
 	}
