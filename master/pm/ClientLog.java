@@ -35,7 +35,7 @@ public class ClientLog {
 		}
 		public void print(BufferedWriter bw) {
 			try {
-				bw.write("["+round_begin+","+round_end+"],["+getEstimate()+","+getInternalEstimateAsDouble()+","+getRank()+","+random_estimate);
+				bw.write("["+round_begin+","+round_end+"],["+getEstimate()+","+getInternalEstimateAsDouble()+"],"+getRank()+","+random_estimate);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

@@ -84,9 +84,10 @@ public class GUI extends JFrame {
 	 * Stage 7:
 	 * Stage 8: */
 	public static double[] mu = {Math.PI/9,Math.PI/9,Math.PI/4.5,Math.PI/4.5,Math.PI/9,Math.PI/9,Math.PI/4.5,Math.PI/4.5}; //in degrees: [20,20,40,40,20,20,40,40]
-	public static double [] init_diversity = {0.0025,0.0025,0.0025,0.0025,1,2.25,1,2.25}; //variance
-	public static final int gameRounds = 1;
-	public static final int gameStages = 1;
+	//public static double [] init_diversity = {0.0025,0.0025,0.0025,0.0025,1.0,2.25,1.0,2.25}; //variance
+	public static double [] init_diversity = {0.0025,0.0025,0.0025,0.0025,4.5,12.0,4.5,12.0}; //variance
+	public static final int gameRounds = 10;
+	public static final int gameStages = 8;
 	public static int completedRounds = 0;
 	public static int completedStages = 0;
 	public static int next_stage = 0;
@@ -140,7 +141,6 @@ public class GUI extends JFrame {
 	static PipedOutputStream poOut;
 	static PipedOutputStream poErr;
 
-	public static int delme = 0;	
 	
 	public GUI(final MyServer myServer) {
 		GUI.myServer = myServer;
@@ -411,6 +411,7 @@ public class GUI extends JFrame {
 				    	}
 				    	table.addCell("10 CHF");
 				    	total_payoff_i += 10;
+				    	total_payoff_i = (double) Math.round(total_payoff_i * 10) / 10.0;
 				    	long total_payoff_rounded = Math.round(total_payoff_i);
 				    	String result = total_payoff_i + " ~ "+total_payoff_rounded + " CHF";
 				    	table.addCell(result);

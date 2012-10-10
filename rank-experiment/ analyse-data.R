@@ -176,7 +176,7 @@ Total_Exp_Time = function(alpha_start,alpha_end) {
 }
 
 Total_Exp_Time(20,0.5)
-Total_Exp_Time(40,2)
+Total_Exp_Time(180,2)
 
 x=rnorm(100,20,1.5)
 hist(x)

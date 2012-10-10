@@ -61,7 +61,7 @@ class window.rank_experiment
     @isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") != -1
     
     #network stuff
-    @serverURL = "http://192.168.1.161:8070/"
+    @serverURL = "http://129.132.201.225:8070/"
     @registered = false
     @customIdentity = Math.random().toString(36).substring(5)
     
@@ -362,6 +362,8 @@ class window.rank_experiment
         row.appendChild(cell2)
         @tbody.appendChild(row)
      total = total + 10.0
+     #round total to 1 decimal place
+     total=Math.round(total*10)/10.0     
      showupfeerow = document.createElement("tr")   
      cell0 = document.createElement("th")
      cell0.appendChild(document.createTextNode("Show-up Fee"))
