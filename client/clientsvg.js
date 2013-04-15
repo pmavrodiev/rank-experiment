@@ -59,7 +59,7 @@
       this.isMacWebKit = navigator.userAgent.indexOf("Macintosh") !== -1 && navigator.userAgent.indexOf("WebKit") !== -1;
       this.isFirefox = navigator.userAgent.indexOf("Firefox") !== -1;
       this.isBuggyFirefox = navigator.userAgent.indexOf("Firefox/13.0.1") !== -1;
-      this.serverURL = "http://129.132.201.225:8070/";
+      this.serverURL = "http://129.132.183.93:8070";
       this.registered = false;
       this.customIdentity = Math.random().toString(36).substring(5);
       this.flip = 0;
@@ -651,33 +651,12 @@
         }
       };
       initInstructions = function() {
-        /*
-              @instructionVector[0] = "Welcome to our guessing game."+ 
-              "The purpose of the game is to find out the location of a hidden point " +
-              "randomly positioned on the blue circle to the left."+
-              "You will compete with other players, and your performance, as well as reward, "+
-              "will be based on how close your guess is to the hidden point, compared to others.\n\r"+
-              "The game consists of 5 identical stages. Each stage, in turn, consists of 10 rounds."+
-              "During each round, you make a guess "+
-              "by moving the green line around the circle and clicking on a desired position. "+
-              "A round finishes when all players have made their choices. A stage finishes after round 10 is over.\n\r"+ 
-               "You have 20 seconds to submit a guess. Failure to do so will disconnect you from the game."+
-              "\n\r"+
-              "Note that the position of the hidden point changes in every stage!\n\r"+      
-              "At the beginning of round 1 of each stage, you will be assigned a random guess. It is used to calculate your starting rank for this stage."+      
-              "Your rank is 1 if you are the player currently closest to the hidden point. "+
-              "Similarly, if you are farthest from the point, you rank last.\n\r" +
-              "Your payoff is based on your final rank at the end each stage. Rank 1 is worth 10 CHF, Rank 2 - 6 CHF, and Rank 3 - 4 CHF. For example, if you consistently"+
-              " finish first in all 5 stages, your reward will be 10*5= 50 CHF.\n\r"+
-              "To continue, enter a username in the box below and click \"Next\" for a quick practice."
-        */
-
+        _this.instructionVector[0] = "Welcome to our guessing game." + "The purpose of the game is to find out the location of a hidden point " + "randomly positioned on the blue circle to the left." + "You will compete with other players, and your performance, as well as reward, " + "will be based on how close your guess is to the hidden point, compared to others.\n\r" + "The game consists of 3 identical stages. Each stage, in turn, consists of 10 rounds." + "During each round, you make a guess " + "by moving the green line around the circle and clicking on a desired position. " + "A round finishes when all players have made their choices. A stage finishes after round 10 is over.\n\r" + "You have 30 seconds to submit a guess. Failure to do so will generate a random guess for that round." + "\n\r" + "Note that the position of the hidden point is the same during a stage but changes in every stage!\n\r" + "At the beginning of round 1 of each stage, you will be assigned a random guess. It is used to calculate your starting rank for this stage." + "Your rank is 1 if you are the player currently closest to the hidden point. " + "Similarly, if you are farthest from the point, you rank last.\n\r" + "Your payoff is based on your final rank at the end of each stage. Normally, you would receive monetary compensation." + "However, in this version you play for unlimited bragging rights about your intelligence. Good luck!\n\r" + "To continue, enter a username in the box below and click \"Next\" for a quick practice.";
+        _this.instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ...";
+        _this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
+        _this.instructionVector[3] = "Finally, your rank at the end of the previous round is displayed above the circle. " + "In this example, the number in the brackets shows number " + "of players. Your rank, will be updated at the end of each round, after all players " + " have submitted their guesses. " + "At the beggining of each new round, you will be shown your rank from the previous one.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle or " + "you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game. " + "You will be assigned a random initial estimate (indicated by the red circle) on which your initial rank will be based.";
+        return _this.instructionsText.textContent = _this.instructionVector[_this.instructionIndex];
       };
-      this.instructionVector[0] = "Welcome to our guessing game.\n\rIn this short practice session, you will learn how to work with the circle. " + "To continue, enter a username in the box below and click \"Next\".";
-      this.instructionVector[1] = "Try moving the green line around the circle and click once it is positioned at a desired location ...";
-      this.instructionVector[2] = "For increased precision, you can zoom in and out of the circle with the mouse wheel.\n\r" + "Try zooming in and out a few times to get used to this functionality ... ";
-      this.instructionVector[3] = "Finally, your rank at the end of the previous round is displayed above the circle. " + "In this example, the number in the brackets shows number " + "of players. Your rank, will be updated at the end of each round, after all players " + " have submitted their guesses. " + "At the beggining of each new round, you will be shown your rank from the previous one.\n\r" + "With this last bit of information, the practice session ends. You can continue " + "playing with the circle or " + "you can go back to read the instructions again. If anything is left unclear, please ask the administrator.\n\r" + "Once you are ready, hit \"Start\" to begin the game. " + "You will be assigned a random initial estimate (indicated by the red circle) on which your initial rank will be based.";
-      this.instructionsText.textContent = this.instructionVector[this.instructionIndex];
       addListeners = function() {
         _this.compositeG.addEventListener('mousemove', ccMouseMove, false);
         _this.circleCanvas.addEventListener('click', ccMouseClick, false);

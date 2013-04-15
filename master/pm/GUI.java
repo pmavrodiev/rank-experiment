@@ -87,7 +87,7 @@ public class GUI extends JFrame {
 	//public static double [] init_diversity = {0.0025,0.0025,0.0025,0.0025,1.0,2.25,1.0,2.25}; //variance
 	public static double [] init_diversity = {0.0025,0.0025,0.0025,0.0025,4.5,12.0,4.5,12.0}; //variance
 	public static final int gameRounds = 10;
-	public static final int gameStages = 8;
+	public static final int gameStages = 3;
 	public static int completedRounds = 0;
 	public static int completedStages = 0;
 	public static int next_stage = 0;
